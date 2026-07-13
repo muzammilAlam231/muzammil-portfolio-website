@@ -476,3 +476,31 @@ body.game-on :is(main, .nav, .rail, .hud) {
   color: var(--ink-dim);
   transition: border-color 0.3s, color 0.3s;
 }
+
+/* ── Placeholder-link toast ── */
+.site-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.6rem;
+  z-index: 120;
+  transform: translateX(-50%) translateY(120%);
+  padding: 0.85rem 1.2rem;
+  max-width: min(92vw, 420px);
+  text-align: center;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 999px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.35s;
+}
+.site-toast.is-on {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+a.is-unavailable {
+  opacity: 0.55;
+}

@@ -38,6 +38,69 @@ function imgTag(src, alt, { lazy = true } = {}) {
   return `<img src="${escAttr(primary)}" alt="${escAttr(alt)}" loading="${lazy ? 'lazy' : 'eager'}" draggable="false" data-fallbacks="${escAttr(alts)}" />`;
 }
 
+function isPlaceholderLink(href) {
+  if (!href) return true;
+  const h = String(href).trim();
+  return h === '#' || h === '' || h === './#' || h.toLowerCase() === 'javascript:void(0)';
+}
+
+let toastTimer;
+export function showSiteToast(message) {
+  let el = $('#site-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'site-toast';
+    el.className = 'site-toast mono';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    document.body.appendChild(el);
+  }
+  el.hidden = false;
+  el.textContent = message;
+  requestAnimationFrame(() => el.classList.add('is-on'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove('is-on');
+    setTimeout(() => {
+      el.hidden = true;
+    }, 350);
+  }, 2600);
+}
+
+function linkOrPlaceholder(href, label, className) {
+  if (isPlaceholderLink(href)) {
+    return `<a class="${className} is-unavailable" href="#" data-unavailable="${label}" data-magnetic>${label === 'live' ? 'View Project' : 'GitHub ↗'}</a>`;
+  }
+  const text = label === 'live' ? 'View Project' : 'GitHub ↗';
+  return `<a class="${className}" href="${href}" target="_blank" rel="noopener" data-magnetic>${text}</a>`;
+}
+
+function initUnavailableLinks() {
+  if (document.documentElement.dataset.unavailWired === '1') return;
+  document.documentElement.dataset.unavailWired = '1';
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-unavailable], a.is-unavailable');
+    if (!a) {
+      const bare = e.target.closest('a[href="#"]');
+      if (!bare || !bare.closest('.p-links, .socials, .p-mock')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showSiteToast('SORRY — THIS LINK IS NOT AVAILABLE YET');
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    const kind = a.dataset.unavailable;
+    const msg =
+      kind === 'repo'
+        ? 'SORRY — REPO LINK NOT AVAILABLE YET'
+        : kind === 'live'
+          ? 'SORRY — LIVE DEMO NOT AVAILABLE YET'
+          : 'SORRY — THIS LINK IS NOT AVAILABLE YET';
+    showSiteToast(msg);
+  });
+}
+
 function hardenProjectImages(root = document) {
   $$('img[data-fallbacks]', root).forEach((img) => {
     if (img.dataset.harden === '1') return;
@@ -189,10 +252,13 @@ export function injectContent(projectList = liveProjects) {
          </div>`;
     }
     const mockTag = imgs.length > 1 ? 'div' : 'a';
+    const liveMissing = isPlaceholderLink(p.live);
     const mockAttrs =
       imgs.length > 1
         ? `class="p-mock has-gallery" style="--ph:${p.hue}" data-tilt`
-        : `class="p-mock" style="--ph:${p.hue}" href="${p.live}" target="_blank" rel="noopener"
+        : liveMissing
+          ? `class="p-mock is-unavailable" style="--ph:${p.hue}" href="#" data-unavailable="live" data-tilt data-cursor-text="SOON" aria-label="${p.title} — link not available yet"`
+          : `class="p-mock" style="--ph:${p.hue}" href="${p.live}" target="_blank" rel="noopener"
          data-tilt data-cursor-text="VIEW" aria-label="View ${p.title}"`;
     panel.innerHTML = `
       <p class="p-num" aria-hidden="true">${n}</p>
@@ -203,14 +269,15 @@ export function injectContent(projectList = liveProjects) {
         <p class="p-desc">${p.desc}</p>
         <div class="p-tags">${p.tech.map((t) => `<span class="tag">${t}</span>`).join('')}</div>
         <div class="p-links">
-          <a class="btn btn-primary" href="${p.live}" target="_blank" rel="noopener" data-magnetic>View Project</a>
-          <a class="btn" href="${p.repo}" target="_blank" rel="noopener" data-magnetic>GitHub ↗</a>
+          ${linkOrPlaceholder(p.live, 'live', 'btn btn-primary')}
+          ${linkOrPlaceholder(p.repo, 'repo', 'btn')}
         </div>
       </div>`;
     track.appendChild(panel);
   });
 
   initWorkGalleries();
+  initUnavailableLinks();
 
   /* ── experience timeline ── */
   const xp = $('#xp-list');
@@ -234,7 +301,12 @@ export function injectContent(projectList = liveProjects) {
 
   /* ── socials ── */
   $('#socials').innerHTML = socials
-    .map((s) => `<a class="btn social-pill" href="${s.url}" target="_blank" rel="noopener" data-magnetic>${s.label}</a>`)
+    .map((s) => {
+      if (isPlaceholderLink(s.url)) {
+        return `<a class="btn social-pill is-unavailable" href="#" data-unavailable="social" data-magnetic>${s.label}</a>`;
+      }
+      return `<a class="btn social-pill" href="${s.url}" target="_blank" rel="noopener" data-magnetic>${s.label}</a>`;
+    })
     .join('');
 
   /* ── marquee: clone content until the loop is seamless ── */
