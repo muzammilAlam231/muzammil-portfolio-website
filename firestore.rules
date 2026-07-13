@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Selected works — public read, admin write
+    match /works/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Traffic events — anyone can create (site beacon), only admin reads
+    match /pageviews/{id} {
+      allow create: if
+        request.resource.data.keys().hasAll(['path', 'ts', 'sessionId']) &&
+        request.resource.data.path is string &&
+        request.resource.data.path.size() < 200 &&
+        request.resource.data.sessionId is string &&
+        request.resource.data.sessionId.size() < 80;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Daily rollups written by admin tools (optional)
+    match /stats/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

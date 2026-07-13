@@ -1,0 +1,72 @@
+/* ════════════════════════════════════════════════════════════════
+   TYPOGRAPHY — display / body / mono system, split-text atoms
+   ════════════════════════════════════════════════════════════════ */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+/* Section headings — big, uppercase, tight */
+.heading {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 6vw, 5.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin-top: 1.2rem;
+}
+.heading.big {
+  font-size: clamp(3.2rem, 9vw, 8rem);
+}
+
+.section-sub {
+  color: var(--ink-dim);
+  margin-top: 1.5rem;
+  max-width: 46ch;
+  font-size: 0.95rem;
+}
+.section-sub code {
+  color: var(--accent);
+  font-size: 0.8em;
+}
+
+/* ── Split-text atoms ──────────────────────────────────────
+   .hl / .hl-in  → masked line reveal (JS animates .hl-in up)
+   .char         → per-character animation unit
+   .w            → per-word animation unit                    */
+.hl {
+  display: block;
+  overflow: hidden;
+}
+.hl-in {
+  display: block;
+  will-change: transform;
+}
+
+.char,
+.w {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* word-level mask (contact CTA) */
+.wm {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}

@@ -1,0 +1,23 @@
+{
+  "name": "muzammil-portfolio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Award-caliber 3D portfolio for Muhammad Muzammil Alam — full-stack developer.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && npx firebase-tools deploy --only hosting,firestore"
+  },
+  "dependencies": {
+    "firebase": "^12.16.0",
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.25",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.4.0",
+    "vite": "^8.1.4"
+  }
+}

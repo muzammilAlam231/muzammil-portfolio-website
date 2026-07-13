@@ -1,0 +1,478 @@
+/* ════════════════════════════════════════════════════════════════
+   COMPONENTS — preloader, nav, rail, cursor, marquee, buttons, chips
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Preloader ── */
+#preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pre-inner {
+  text-align: center;
+}
+.pre-name {
+  font-size: 0.68rem;
+  letter-spacing: 0.5em;
+  color: var(--ink-dim);
+}
+.pre-count {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(4.5rem, 15vw, 9rem);
+  line-height: 1;
+  color: var(--ink);
+  margin: 1rem 0 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.pre-pct {
+  color: var(--accent);
+  font-size: 0.35em;
+  vertical-align: super;
+}
+.pre-bar {
+  width: min(240px, 50vw);
+  height: 1px;
+  background: var(--line);
+  margin: 0 auto 1.4rem;
+  overflow: hidden;
+}
+#pre-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.pre-hint {
+  font-size: 0.58rem;
+  letter-spacing: 0.4em;
+  color: var(--ink-dim);
+  min-height: 1.2em; /* text is scramble-cycled by JS */
+}
+.pre-count.done {
+  color: var(--accent);
+  transition: color 0.25s;
+}
+#preloader::after { /* accent scan-line at the curtain's lower edge */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+.pre-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 195;
+  background: #131318;
+}
+
+/* ── Nav ── */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.3rem var(--pad-x);
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.45s;
+}
+.nav.nav-hidden {
+  transform: translateY(-110%);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1;
+  display: inline-flex;
+}
+.nav-logo-dot {
+  color: var(--accent);
+}
+.nav-links {
+  display: flex;
+  gap: 1.8rem;
+}
+.nav-links a {
+  position: relative;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  transition: color 0.3s;
+  padding: 0.3rem 0;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.nav-links a:hover,
+.nav-links a.is-active {
+  color: var(--ink);
+}
+.nav-links a:hover::after,
+.nav-links a.is-active::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+.nav-links .nav-cta {
+  color: var(--accent);
+}
+.nav-links .nav-play {
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  transition: color 0.3s, border-color 0.3s;
+}
+.nav-links .nav-play::after {
+  display: none; /* pill style — no underline */
+}
+.nav-links .nav-play:hover {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+}
+
+/* ── Section index rail (right edge, desktop) ── */
+.rail {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+.rail-bar {
+  position: relative;
+  width: 1px;
+  height: 64px;
+  background: var(--line);
+  overflow: hidden;
+}
+#rail-progress {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: top;
+}
+.rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.rail-item {
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  opacity: 0.55;
+  transition: color 0.3s, opacity 0.3s, transform 0.3s;
+}
+.rail-item.is-active {
+  color: var(--accent);
+  opacity: 1;
+  transform: translateX(-3px);
+}
+
+/* ── Custom cursor ── */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 130;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0;
+}
+html.fine-pointer .cursor-dot,
+html.fine-pointer .cursor-ring {
+  opacity: 1;
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--accent);
+}
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 1px solid rgba(233, 233, 236, 0.55);
+  mix-blend-mode: difference;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.3s, height 0.3s, margin 0.3s, border-color 0.3s, background-color 0.3s, mix-blend-mode 0.3s;
+}
+.cursor-label {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  color: var(--accent-ink);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+/* Hovering any interactive element → ring grows */
+.cursor-ring.is-hover {
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-color: var(--accent);
+}
+/* Elements with data-cursor-text → ring becomes a filled badge */
+.cursor-ring.is-label {
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  background: var(--accent);
+  border-color: var(--accent);
+  mix-blend-mode: normal;
+}
+.cursor-ring.is-label .cursor-label {
+  opacity: 1;
+}
+.cursor-dot.is-down {
+  transform: scale(2.4);
+}
+
+/* ── Marquee divider ── */
+.marquee {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 1rem 0;
+}
+.mq-track {
+  display: flex;
+  white-space: nowrap;
+  width: max-content;
+  will-change: transform;
+  animation: mqScroll 22s linear infinite;
+}
+.mq-track span {
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+}
+@keyframes mqScroll {
+  to { transform: translateX(-50%); }
+}
+
+/* ── Buttons (ghost buttons get an accent fill that sweeps up) ── */
+.btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  transition: border-color 0.35s, color 0.35s;
+  will-change: transform;
+}
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  background: var(--accent);
+  border-radius: inherit;
+  transform: translateY(102%);
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn:hover::before {
+  transform: translateY(0);
+}
+.btn-primary::before {
+  display: none; /* primary is already filled */
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn-primary:hover {
+  color: var(--accent-ink);
+  filter: brightness(1.08);
+}
+
+/* ── System HUD (bottom-left readout: formation + fps) ── */
+.hud {
+  position: fixed;
+  left: 1.6rem;
+  bottom: 1.3rem;
+  z-index: 40;
+  display: none;
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  pointer-events: none;
+}
+.hud .hud-acc {
+  color: var(--accent);
+}
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .hud {
+    display: block;
+  }
+}
+
+/* ── BUG HUNT mini-game ── */
+#game-open {
+  position: fixed;
+  right: 1.4rem;
+  bottom: 1.3rem;
+  z-index: 45;
+  padding: 0.65rem 1.05rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(16, 16, 20, 0.6);
+  backdrop-filter: blur(8px);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s, color 0.3s, border-color 0.3s;
+}
+body.is-loaded #game-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+#game-open:hover {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+}
+body.game-on #game-open {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #game-open {
+    display: none !important;
+  }
+}
+
+#game-ui {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+.game-hud {
+  position: absolute;
+  top: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.7rem 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(10, 10, 11, 0.75);
+  backdrop-filter: blur(10px);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.game-hud b {
+  color: var(--accent);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+}
+#game-quit {
+  pointer-events: auto;
+  color: var(--ink);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+#game-quit:hover {
+  color: var(--accent);
+}
+.game-msg {
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  letter-spacing: 0.34em;
+  color: var(--ink);
+  text-align: center;
+  text-shadow: 0 0 24px rgba(0, 0, 0, 0.9);
+}
+.game-pop {
+  position: fixed;
+  z-index: 70;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  pointer-events: none;
+  text-shadow: 0 0 12px var(--accent-soft);
+}
+/* the page steps back while the arena is live
+   (transition only on elements whose opacity GSAP never inlines) */
+main,
+.hud {
+  transition: opacity 0.45s;
+}
+body.game-on :is(main, .nav, .rail, .hud) {
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+/* ── Chips / tags ── */
+.chip,
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  padding: 0.42rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  transition: border-color 0.3s, color 0.3s;
+}

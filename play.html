@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GRID RUN — Muzammil Alam</title>
+  <meta name="description" content="GRID RUN — a 3D endless runner through the data highway. Built by Muhammad Muzammil Alam." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <noscript><style>.overlay{display:none!important}</style></noscript>
+</head>
+<body class="game-page">
+  <div class="crt" aria-hidden="true"></div>
+
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ══════════ HUD (live during a run) ══════════ -->
+  <div id="hud" class="hidden" aria-live="off">
+    <div class="hud-top">
+      <div class="hud-cell hud-left mono">
+        <span id="hud-dist">0</span><span class="dim">M</span>
+        <span class="hud-combo" id="hud-combo"></span>
+      </div>
+      <div class="hud-cell hud-score display" id="hud-score">0</div>
+      <div class="hud-cell hud-right mono">
+        <span class="coin-ico" aria-hidden="true">◈</span><span id="hud-coins">0</span>
+      </div>
+    </div>
+    <div class="hud-buttons">
+      <button id="btn-mute" class="mono hud-btn" aria-label="Toggle sound">SND</button>
+      <button id="btn-pause" class="mono hud-btn" aria-label="Pause">II</button>
+      <a href="./" class="mono hud-btn" aria-label="Back to portfolio">EXIT</a>
+    </div>
+    <!-- active power-up chips with draining timer bars -->
+    <div class="powerups" id="hud-powerups"></div>
+    <p class="zone-toast mono" id="zone-toast"></p>
+    <p class="float-msg mono" id="float-msg"></p>
+  </div>
+
+  <!-- ══════════ START ══════════ -->
+  <div id="screen-start" class="overlay">
+    <p class="ov-eyebrow mono">MUZAMMIL.DEV PRESENTS</p>
+    <h1 class="ov-title display">GRID<span class="acc">RUN</span></h1>
+    <p class="ov-sub mono">ENDLESS RUN THROUGH THE DATA HIGHWAY</p>
+    <div class="controls-hint mono" id="controls-hint">
+      <span><b>◄ ►</b> / A·D — LANES</span>
+      <span><b>▲</b> / SPACE — JUMP</span>
+      <span><b>▼</b> / S — SLIDE</span>
+      <span class="touch-only"><b>SWIPE</b> — MOVE · TAP — JUMP</span>
+    </div>
+    <p class="ov-cta mono blink" id="start-cta">PRESS ANY KEY / TAP TO RUN</p>
+    <p class="ov-best mono" id="start-best"></p>
+    <a class="ov-back mono" href="./">← BACK TO PORTFOLIO</a>
+  </div>
+
+  <!-- ══════════ PAUSE ══════════ -->
+  <div id="screen-pause" class="overlay hidden">
+    <h2 class="ov-title-sm display">PAUSED</h2>
+    <p class="ov-cta mono">P / TAP — RESUME</p>
+    <a class="ov-back mono" href="./">← QUIT TO PORTFOLIO</a>
+  </div>
+
+  <!-- ══════════ GAME OVER ══════════ -->
+  <div id="screen-over" class="overlay hidden">
+    <p class="ov-eyebrow mono glitch-red">CONNECTION LOST</p>
+    <h2 class="ov-title-sm display">RUN<span class="acc">TERMINATED</span></h2>
+    <div class="over-stats mono">
+      <div><span class="dim">SCORE</span><b id="over-score">0</b></div>
+      <div><span class="dim">DISTANCE</span><b id="over-dist">0M</b></div>
+      <div><span class="dim">DATA BITS</span><b id="over-coins">0</b></div>
+    </div>
+    <p class="ov-newbest mono hidden" id="over-newbest">◈ NEW HIGH SCORE ◈</p>
+    <div class="leaderboard mono" id="leaderboard"></div>
+    <div class="over-actions">
+      <button id="btn-again" class="ov-btn mono">▶ PLAY AGAIN <span class="dim">(R)</span></button>
+      <a class="ov-btn ghost mono" href="./">← BACK TO PORTFOLIO</a>
+    </div>
+  </div>
+
+  <script type="module" src="/src/game/main.js"></script>
+</body>
+</html>

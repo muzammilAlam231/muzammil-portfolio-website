@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Admin — Muzammil Alam</title>
+  <meta name="theme-color" content="#0a0a0b" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body class="admin-body">
+  <!-- ══════════ LOGIN ══════════ -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <p class="auth-eyebrow mono">MUZAMMIL.DEV · CONTROL</p>
+      <h1 class="auth-title display">Admin</h1>
+      <p class="auth-sub">Traffic, works, and live portfolio control.</p>
+      <form id="login-form" class="auth-form" autocomplete="on">
+        <label class="field">
+          <span class="mono">EMAIL</span>
+          <input id="login-email" type="email" required placeholder="you@email.com" autocomplete="username" />
+        </label>
+        <label class="field">
+          <span class="mono">PASSWORD</span>
+          <input id="login-pass" type="password" required placeholder="••••••••" autocomplete="current-password" />
+        </label>
+        <p id="login-error" class="auth-error mono" hidden></p>
+        <button type="submit" class="btn-primary" id="login-btn">SIGN IN</button>
+      </form>
+      <a class="auth-back mono" href="./">← BACK TO SITE</a>
+    </div>
+  </div>
+
+  <!-- ══════════ APP SHELL ══════════ -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <span class="side-mark">M</span>
+        <div>
+          <p class="display side-name">CONTROL</p>
+          <p class="mono side-sub">muzammil-26858</p>
+        </div>
+      </div>
+      <nav class="side-nav" aria-label="Admin">
+        <button class="nav-item is-active" data-view="overview">Overview</button>
+        <button class="nav-item" data-view="traffic">Traffic</button>
+        <button class="nav-item" data-view="works">Selected Works</button>
+      </nav>
+      <div class="side-foot">
+        <a class="mono" href="./" target="_blank" rel="noopener">Open site ↗</a>
+        <button id="btn-logout" class="mono btn-ghost">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="mono top-eyebrow" id="view-eyebrow">OVERVIEW</p>
+          <h2 class="display top-title" id="view-title">Dashboard</h2>
+        </div>
+        <div class="top-actions">
+          <button id="btn-refresh" class="btn-ghost mono">REFRESH</button>
+          <span id="admin-email" class="mono top-email"></span>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section id="view-overview" class="view is-visible">
+        <div class="range-bar" role="tablist" aria-label="Date range">
+          <button type="button" class="range-btn mono" data-range="7">7 DAYS</button>
+          <button type="button" class="range-btn mono is-active" data-range="14">14 DAYS</button>
+          <button type="button" class="range-btn mono" data-range="30">1 MONTH</button>
+          <button type="button" class="range-btn mono" data-range="365">1 YEAR</button>
+          <button type="button" class="range-btn mono" data-range="all">ALL TIME</button>
+        </div>
+        <div class="kpi-grid" id="kpi-grid">
+          <article class="kpi"><p class="mono kpi-label">TODAY</p><p class="kpi-num" id="kpi-today">—</p><p class="mono kpi-meta" id="kpi-today-u">uniques</p></article>
+          <article class="kpi"><p class="mono kpi-label" id="kpi-range-label">14 DAYS</p><p class="kpi-num" id="kpi-range">—</p><p class="mono kpi-meta" id="kpi-range-u">uniques</p></article>
+          <article class="kpi"><p class="mono kpi-label">7 DAYS</p><p class="kpi-num" id="kpi-week">—</p><p class="mono kpi-meta" id="kpi-week-u">uniques</p></article>
+          <article class="kpi"><p class="mono kpi-label">WORKS LIVE</p><p class="kpi-num" id="kpi-works">—</p><p class="mono kpi-meta">published</p></article>
+        </div>
+        <div class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <h3 class="display" id="chart-title">14-day views</h3>
+              <p class="mono dim" id="chart-range"></p>
+            </div>
+            <div class="chart-wrap">
+              <div class="chart" id="chart-bars" role="img" aria-label="Pageviews chart"></div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h3 class="display">Devices</h3></div>
+            <div id="device-bars" class="bars"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- TRAFFIC -->
+      <section id="view-traffic" class="view">
+        <div class="range-bar traffic-range" role="tablist" aria-label="Date range">
+          <button type="button" class="range-btn mono" data-range="7">7 DAYS</button>
+          <button type="button" class="range-btn mono is-active" data-range="14">14 DAYS</button>
+          <button type="button" class="range-btn mono" data-range="30">1 MONTH</button>
+          <button type="button" class="range-btn mono" data-range="365">1 YEAR</button>
+          <button type="button" class="range-btn mono" data-range="all">ALL TIME</button>
+        </div>
+        <div class="panel-grid">
+          <article class="panel">
+            <div class="panel-head"><h3 class="display">Top pages</h3></div>
+            <div id="top-paths" class="table-wrap"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><h3 class="display">Referrers</h3></div>
+            <div id="top-refs" class="table-wrap"></div>
+          </article>
+        </div>
+        <article class="panel wide">
+          <div class="panel-head">
+            <h3 class="display">Live feed</h3>
+            <p class="mono dim">Last 40 hits</p>
+          </div>
+          <div id="live-feed" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <!-- WORKS -->
+      <section id="view-works" class="view">
+        <div class="works-toolbar">
+          <button id="btn-add-work" class="btn-primary">+ ADD WORK</button>
+          <button id="btn-seed" class="btn-ghost mono">SEED FROM DEFAULTS</button>
+        </div>
+        <div id="works-list" class="works-list"></div>
+        <p id="works-empty" class="empty mono hidden">No works yet — add one or seed defaults.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- WORK MODAL -->
+  <div id="work-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="display" id="modal-title">Add work</h3>
+        <button type="button" class="btn-ghost mono" id="modal-close">CLOSE</button>
+      </div>
+      <form id="work-form" class="work-form">
+        <input type="hidden" id="w-id" />
+        <label class="field"><span class="mono">TITLE</span><input id="w-title" required maxlength="80" /></label>
+        <label class="field"><span class="mono">DESCRIPTION</span><textarea id="w-desc" rows="3" required maxlength="400"></textarea></label>
+        <label class="field"><span class="mono">TECH (comma-separated)</span><input id="w-tech" placeholder="React, Node.js, AWS" /></label>
+        <div class="field-row">
+          <label class="field"><span class="mono">HUE 0–360</span><input id="w-hue" type="number" min="0" max="360" value="205" /></label>
+          <label class="field"><span class="mono">ORDER</span><input id="w-order" type="number" min="0" value="0" /></label>
+        </div>
+        <label class="field"><span class="mono">LIVE URL</span><input id="w-live" placeholder="https://" /></label>
+        <label class="field"><span class="mono">REPO URL</span><input id="w-repo" placeholder="https://github.com/..." /></label>
+        <label class="field"><span class="mono">IMAGE URL (optional)</span><input id="w-image" placeholder="Google Drive share link or https://..." /></label>
+        <p class="field-hint mono">Drive: set file to “Anyone with the link”. Paste the share link — we convert it automatically.</p>
+        <label class="check"><input id="w-published" type="checkbox" checked /> <span>Published on portfolio</span></label>
+        <p id="form-error" class="auth-error mono" hidden></p>
+        <div class="modal-actions">
+          <button type="button" class="btn-danger mono" id="btn-delete-work" hidden>DELETE</button>
+          <button type="submit" class="btn-primary" id="btn-save-work">SAVE</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast mono" hidden></div>
+
+  <script type="module" src="/src/admin/main.js"></script>
+</body>
+</html>

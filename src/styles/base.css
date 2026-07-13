@@ -1,0 +1,212 @@
+/* ════════════════════════════════════════════════════════════════
+   BASE — design tokens, reset, overlays, a11y
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Palette ─────────────────────────────────────────────
+     Accent options (swap the --accent line, everything follows):
+       ACID LIME      #b8ff3c   (default — terminal / systems energy)
+       ELECTRIC BLUE  #5b8cff   (cooler, more "cloud")
+       AMBER          #ffb03a   (warmer, editorial)                  */
+  --bg: #0a0a0b;
+  --bg-2: #101014;
+  --ink: #e9e9ec;
+  --ink-dim: #9b9ba5;
+  --line: rgba(233, 233, 236, 0.1);
+  --accent: #b8ff3c;
+  --accent-ink: #0a0a0b; /* text color on accent backgrounds */
+  --accent-soft: rgba(184, 255, 60, 0.35);
+
+  /* ── Type ── */
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Layout ── */
+  --pad-x: clamp(1.25rem, 5vw, 5rem);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  overflow-x: clip;
+  scroll-behavior: auto; /* Lenis owns scrolling */
+  scrollbar-gutter: stable; /* no layout jump when the preloader unlocks scroll */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100svh;
+}
+
+/* Scroll is unlocked by JS once the preloader finishes */
+html.js body.is-loaded {
+  overflow: visible;
+  overflow-x: clip;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+img,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Thin dark scrollbar */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a30 transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a30;
+  border-radius: 8px;
+}
+
+/* ── Fixed WebGL canvas: one particle system behind the whole page ── */
+#webgl {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* WebGL unavailable → soft gradient stand-in */
+html.no-webgl #webgl {
+  display: none;
+}
+html.no-webgl body {
+  background: radial-gradient(60% 50% at 50% 35%, #15151c 0%, var(--bg) 70%);
+}
+
+/* ── Film grain (animated, composited) + vignette ── */
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 0.9s steps(1) infinite;
+}
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.5) 100%);
+}
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -8%); }
+  20% { transform: translate(-12%, 3%); }
+  30% { transform: translate(7%, -10%); }
+  40% { transform: translate(-3%, 12%); }
+  50% { transform: translate(-10%, -4%); }
+  60% { transform: translate(12%, 0); }
+  70% { transform: translate(0, 8%); }
+  80% { transform: translate(3%, 12%); }
+  90% { transform: translate(-8%, 2%); }
+}
+
+/* ── Sections ── */
+.section {
+  position: relative;
+  min-height: 100svh;
+  padding: clamp(6rem, 13vh, 10rem) var(--pad-x);
+}
+
+/* ── A11y helpers ── */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 300;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  border-radius: 6px;
+  transform: translateY(-300%);
+  transition: transform 0.25s;
+}
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* ── Reduced motion: kill all CSS loops, hide cursor ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+  .mq-track {
+    animation: none !important;
+  }
+}
