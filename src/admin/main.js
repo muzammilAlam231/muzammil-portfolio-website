@@ -356,7 +356,8 @@ function renderWorks() {
         <div class="work-meta">
           <span class="pill ${w.published ? 'on' : ''}">${w.published ? 'LIVE' : 'DRAFT'}</span>
           <span class="pill">#${w.order}</span>
-          ${(w.tech || []).slice(0, 4).map((t) => `<span class="pill">${esc(t)}</span>`).join('')}
+          <span class="pill">${(w.images || []).length} PIC${(w.images || []).length === 1 ? '' : 'S'}</span>
+          ${(w.tech || []).slice(0, 3).map((t) => `<span class="pill">${esc(t)}</span>`).join('')}
         </div>
       </div>
       <div class="work-actions">
@@ -388,6 +389,39 @@ async function refreshAll() {
 }
 
 /* ── works modal ── */
+const MAX_IMAGES = 12;
+
+function imageInputs() {
+  return $$('#w-images .img-url').map((i) => i.value.trim()).filter(Boolean);
+}
+
+function addImageRow(value = '') {
+  const list = $('#w-images');
+  if ($$('#w-images .img-row').length >= MAX_IMAGES) {
+    toast(`MAX ${MAX_IMAGES} IMAGES`);
+    return;
+  }
+  const row = document.createElement('div');
+  row.className = 'img-row';
+  row.innerHTML = `
+    <input class="img-url" type="text" inputmode="url" placeholder="Drive share link or https://..." value="${esc(value)}" />
+    <button type="button" class="btn-remove" aria-label="Remove image">✕</button>`;
+  row.querySelector('.btn-remove').addEventListener('click', () => {
+    row.remove();
+    if (!$$('#w-images .img-row').length) addImageRow('');
+  });
+  list.appendChild(row);
+}
+
+function setImageRows(urls) {
+  const list = $('#w-images');
+  list.innerHTML = '';
+  const src = urls?.length ? urls : [''];
+  src.slice(0, MAX_IMAGES).forEach((u) => addImageRow(u));
+}
+
+$('#btn-add-image').addEventListener('click', () => addImageRow(''));
+
 function openModal(work = null) {
   els.modal.classList.remove('hidden');
   $('#modal-title').textContent = work ? 'Edit work' : 'Add work';
@@ -399,7 +433,7 @@ function openModal(work = null) {
   $('#w-order').value = work?.order ?? works.length;
   $('#w-live').value = work?.live || '#';
   $('#w-repo').value = work?.repo || '#';
-  $('#w-image').value = work?.image || '';
+  setImageRows(work?.images?.length ? work.images : work?.image ? [work.image] : ['']);
   $('#w-published').checked = work ? work.published !== false : true;
   els.deleteBtn.hidden = !work;
   els.formErr.hidden = true;
@@ -408,6 +442,7 @@ function openModal(work = null) {
 function closeModal() {
   els.modal.classList.add('hidden');
   els.workForm.reset();
+  $('#w-images').innerHTML = '';
 }
 
 $('#btn-add-work').addEventListener('click', () => openModal());
@@ -420,6 +455,7 @@ els.workForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   els.formErr.hidden = true;
   const id = $('#w-id').value;
+  const imgs = imageInputs();
   const payload = {
     title: $('#w-title').value,
     desc: $('#w-desc').value,
@@ -428,7 +464,8 @@ els.workForm.addEventListener('submit', async (e) => {
     order: +$('#w-order').value || 0,
     live: $('#w-live').value.trim() || '#',
     repo: $('#w-repo').value.trim() || '#',
-    image: $('#w-image').value.trim() || null,
+    images: imgs,
+    image: imgs[0] || null,
     published: $('#w-published').checked,
   };
   try {

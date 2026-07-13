@@ -18,22 +18,57 @@ import { projects as fallbackProjects } from './data.js';
 
 const COL = 'works';
 
-function driveDirectUrl(url) {
+/** Pull a Google Drive file id from common share / view URLs */
+export function extractDriveId(url) {
   if (!url || typeof url !== 'string') return null;
   const raw = url.trim();
-  if (!raw) return null;
-  // Already a direct-ish Drive view URL
-  if (/drive\.google\.com\/uc\?/.test(raw) || /googleusercontent\.com/.test(raw)) return raw;
-  // Share links: /file/d/FILE_ID/... or open?id=FILE_ID
   const m =
     raw.match(/\/file\/d\/([^/]+)/) ||
-    raw.match(/[?&]id=([^&]+)/);
-  if (m?.[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-  return raw;
+    raw.match(/[?&]id=([^&]+)/) ||
+    raw.match(/\/d\/([^/=]+)/) ||
+    raw.match(/lh3\.googleusercontent\.com\/d\/([^=/?#]+)/);
+  return m?.[1] || null;
+}
+
+/**
+ * Prefer embed-friendly Drive URLs.
+ * `uc?export=view` often 403s inside <img>; thumbnail / lh3 work more reliably.
+ */
+export function driveEmbedVariants(url) {
+  if (!url || typeof url !== 'string') return [];
+  const raw = url.trim();
+  if (!raw) return [];
+  const id = extractDriveId(raw);
+  if (!id) return [raw];
+  return [
+    `https://lh3.googleusercontent.com/d/${id}=w2400`,
+    `https://drive.google.com/thumbnail?id=${id}&sz=w2400`,
+    `https://drive.google.com/uc?export=view&id=${id}`,
+  ];
+}
+
+export function driveDirectUrl(url) {
+  const variants = driveEmbedVariants(url);
+  return variants[0] || null;
+}
+
+function normalizeImages(raw) {
+  const list = [];
+  if (Array.isArray(raw.images)) {
+    raw.images.forEach((u) => {
+      const d = driveDirectUrl(u);
+      if (d) list.push(d);
+    });
+  }
+  // legacy single image field
+  const single = driveDirectUrl(raw.image);
+  if (single && !list.includes(single)) list.unshift(single);
+  // de-dupe while preserving order
+  return [...new Set(list)].slice(0, 12);
 }
 
 function normalize(raw, id = null) {
-  const image = driveDirectUrl(raw.image);
+  const images = normalizeImages(raw);
   return {
     id: id || raw.id || null,
     title: String(raw.title || 'Untitled').trim(),
@@ -45,7 +80,8 @@ function normalize(raw, id = null) {
           .map((t) => t.trim())
           .filter(Boolean),
     hue: Number.isFinite(+raw.hue) ? +raw.hue : 205,
-    image,
+    images,
+    image: images[0] || null, // keep first as primary for older consumers
     live: raw.live || '#',
     repo: raw.repo || '#',
     order: Number.isFinite(+raw.order) ? +raw.order : 0,

@@ -18,6 +18,7 @@ import { morph, setHighlight, setDrift, setFlare, burst, stats } from './three/a
 import { initMagnetic } from './magnetic.js';
 import { scrollToTop } from './scroll.js';
 import { skillGroups, projects as fallbackProjects, experience, cloudHighlights, cloudStats, socials } from './data.js';
+import { driveEmbedVariants } from './works.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -25,6 +26,89 @@ const MOTION = '(prefers-reduced-motion: no-preference)';
 
 /** Live project list (Firestore via admin, else data.js fallback) */
 export let liveProjects = fallbackProjects;
+
+function escAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function imgTag(src, alt, { lazy = true } = {}) {
+  const variants = driveEmbedVariants(src);
+  const primary = variants[0] || src;
+  const alts = variants.slice(1).join('|');
+  return `<img src="${escAttr(primary)}" alt="${escAttr(alt)}" loading="${lazy ? 'lazy' : 'eager'}" draggable="false" data-fallbacks="${escAttr(alts)}" />`;
+}
+
+function hardenProjectImages(root = document) {
+  $$('img[data-fallbacks]', root).forEach((img) => {
+    if (img.dataset.harden === '1') return;
+    img.dataset.harden = '1';
+    const queue = (img.dataset.fallbacks || '')
+      .split('|')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    let i = 0;
+    img.addEventListener('error', () => {
+      if (i >= queue.length) {
+        img.classList.add('is-broken');
+        return;
+      }
+      img.src = queue[i++];
+    });
+  });
+}
+
+function initWorkGalleries() {
+  hardenProjectImages();
+  $$('[data-gallery]').forEach((gal) => {
+    const track = $('.p-gallery-track', gal);
+    const slides = $$('img', track);
+    const dots = $$('.p-gal-dot', gal);
+    const count = $('b', $('.p-gal-count', gal));
+    if (slides.length < 2) return;
+    let i = 0;
+    const go = (n) => {
+      i = (n + slides.length) % slides.length;
+      track.style.transform = `translateX(${-i * 100}%)`;
+      dots.forEach((d, k) => d.classList.toggle('is-on', k === i));
+      if (count) count.textContent = String(i + 1);
+    };
+    $('.p-gal-btn.prev', gal)?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      go(i - 1);
+    });
+    $('.p-gal-btn.next', gal)?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      go(i + 1);
+    });
+    dots.forEach((d) =>
+      d.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        go(+d.dataset.i);
+      })
+    );
+    /* swipe */
+    let sx = 0;
+    gal.addEventListener(
+      'touchstart',
+      (e) => {
+        sx = e.changedTouches[0].clientX;
+      },
+      { passive: true }
+    );
+    gal.addEventListener(
+      'touchend',
+      (e) => {
+        const dx = e.changedTouches[0].clientX - sx;
+        if (Math.abs(dx) < 36) return;
+        go(i + (dx < 0 ? 1 : -1));
+      },
+      { passive: true }
+    );
+  });
+}
 
 /* ════════════════════════════════════════════════════════════
    CONTENT INJECTION
@@ -71,9 +155,27 @@ export function injectContent(projectList = liveProjects) {
     const n = String(i + 1).padStart(2, '0');
     const panel = document.createElement('article');
     panel.className = 'panel panel-project';
-    const visual = p.image
-      ? `<img src="${p.image}" alt="${p.title} screenshot" loading="lazy" />`
-      : `<div class="mock-chrome"><i></i><i></i><i></i><span class="mock-url"></span></div>
+    const imgs = (p.images?.length ? p.images : p.image ? [p.image] : []).filter(Boolean);
+    let visual;
+    if (imgs.length > 1) {
+      visual = `
+        <div class="p-gallery" data-gallery>
+          <div class="p-gallery-track">
+            ${imgs
+              .map((src, k) => imgTag(src, `${p.title} screenshot ${k + 1}`, { lazy: k > 0 }))
+              .join('')}
+          </div>
+          <button type="button" class="p-gal-btn prev" aria-label="Previous image">‹</button>
+          <button type="button" class="p-gal-btn next" aria-label="Next image">›</button>
+          <div class="p-gal-dots" role="tablist" aria-label="Project images">
+            ${imgs.map((_, k) => `<button type="button" class="p-gal-dot${k === 0 ? ' is-on' : ''}" aria-label="Image ${k + 1}" data-i="${k}"></button>`).join('')}
+          </div>
+          <span class="p-gal-count mono"><b>1</b> / ${imgs.length}</span>
+        </div>`;
+    } else if (imgs.length === 1) {
+      visual = imgTag(imgs[0], `${p.title} screenshot`, { lazy: true });
+    } else {
+      visual = `<div class="mock-chrome"><i></i><i></i><i></i><span class="mock-url"></span></div>
          <div class="mock-body">
            <div class="mock-side">
              <span class="mk-line"></span><span class="mk-line short"></span>
@@ -85,10 +187,16 @@ export function injectContent(projectList = liveProjects) {
              <span class="mk-row dim"></span>
            </div>
          </div>`;
+    }
+    const mockTag = imgs.length > 1 ? 'div' : 'a';
+    const mockAttrs =
+      imgs.length > 1
+        ? `class="p-mock has-gallery" style="--ph:${p.hue}" data-tilt`
+        : `class="p-mock" style="--ph:${p.hue}" href="${p.live}" target="_blank" rel="noopener"
+         data-tilt data-cursor-text="VIEW" aria-label="View ${p.title}"`;
     panel.innerHTML = `
       <p class="p-num" aria-hidden="true">${n}</p>
-      <a class="p-mock" style="--ph:${p.hue}" href="${p.live}" target="_blank" rel="noopener"
-         data-tilt data-cursor-text="VIEW" aria-label="View ${p.title}">${visual}</a>
+      <${mockTag} ${mockAttrs}>${visual}</${mockTag}>
       <div class="p-info">
         <p class="p-index mono">PROJECT ${n} — ${total}</p>
         <h3 class="p-title">${p.title}</h3>
@@ -101,6 +209,8 @@ export function injectContent(projectList = liveProjects) {
       </div>`;
     track.appendChild(panel);
   });
+
+  initWorkGalleries();
 
   /* ── experience timeline ── */
   const xp = $('#xp-list');

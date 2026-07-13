@@ -324,7 +324,7 @@
   user-select: none;
 }
 
-/* Stylised mockup card (replaced by <img> when projects[n].image is set) */
+/* Stylised mockup card (replaced by <img> / gallery when images are set) */
 .p-mock {
   position: relative;
   z-index: 1;
@@ -339,22 +339,128 @@
       hsl(var(--ph) 75% 24%) 100%);
   transform-style: preserve-3d;
   will-change: transform;
+  display: block;
 }
 .p-mock img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  background: hsl(var(--ph) 28% 8%);
 }
-.p-mock::after { /* hover sheen */
+.p-mock img.is-broken {
+  object-fit: contain;
+  padding: 2rem;
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.p-mock:not(.has-gallery)::after { /* hover sheen */
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.1) 50%, transparent 58%);
   opacity: 0;
   transition: opacity 0.4s;
+  pointer-events: none;
 }
-.p-mock:hover::after {
+.p-mock:not(.has-gallery):hover::after {
   opacity: 1;
+}
+
+/* Multi-image gallery */
+.p-gallery {
+  position: absolute;
+  inset: 0;
+  touch-action: pan-y;
+}
+.p-gallery-track {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: transform;
+}
+.p-gallery-track img {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+  background: hsl(var(--ph) 28% 8%);
+}
+.p-gal-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 233, 236, 0.18);
+  background: rgba(10, 10, 11, 0.55);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  font-size: 1.4rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s, background 0.25s, border-color 0.25s;
+}
+.p-mock:hover .p-gal-btn,
+.p-gal-btn:focus-visible {
+  opacity: 1;
+}
+.p-gal-btn.prev { left: 0.7rem; }
+.p-gal-btn.next { right: 0.7rem; }
+.p-gal-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.p-gal-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 0.35rem;
+}
+.p-gal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(233, 233, 236, 0.35);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s, background 0.2s;
+}
+.p-gal-dot.is-on {
+  background: var(--accent);
+  transform: scale(1.25);
+}
+.p-gal-count {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 3;
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(10, 10, 11, 0.55);
+  border: 1px solid rgba(233, 233, 236, 0.12);
+  color: var(--ink-dim);
+}
+.p-gal-count b { color: var(--accent); font-weight: 500; }
+
+@media (pointer: coarse) {
+  .p-gal-btn { opacity: 0.85; }
 }
 .mock-chrome {
   display: flex;

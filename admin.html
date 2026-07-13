@@ -157,8 +157,12 @@
         </div>
         <label class="field"><span class="mono">LIVE URL</span><input id="w-live" placeholder="https://" /></label>
         <label class="field"><span class="mono">REPO URL</span><input id="w-repo" placeholder="https://github.com/..." /></label>
-        <label class="field"><span class="mono">IMAGE URL (optional)</span><input id="w-image" placeholder="Google Drive share link or https://..." /></label>
-        <p class="field-hint mono">Drive: set file to “Anyone with the link”. Paste the share link — we convert it automatically.</p>
+        <div class="field">
+          <span class="mono">IMAGES (up to 12)</span>
+          <div id="w-images" class="img-list"></div>
+          <button type="button" class="btn-ghost mono" id="btn-add-image">+ ADD IMAGE</button>
+          <p class="field-hint mono">Drive: Share → Anyone with the link (Viewer). Paste the share link. If a pic still fails, use Imgur / Cloudinary / Firebase Storage instead — Drive blocks some embeds.</p>
+        </div>
         <label class="check"><input id="w-published" type="checkbox" checked /> <span>Published on portfolio</span></label>
         <p id="form-error" class="auth-error mono" hidden></p>
         <div class="modal-actions">
