@@ -31,7 +31,8 @@
   margin-top: 1.2rem;
 }
 .heading.big {
-  font-size: clamp(3.2rem, 9vw, 8rem);
+  /* Floor scales with viewport so “SELECTED” fits on narrow phones */
+  font-size: clamp(2.15rem, 12.5vw, 8rem);
 }
 
 .section-sub {

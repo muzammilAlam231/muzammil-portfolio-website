@@ -836,6 +836,11 @@
   .nav-links .nav-play {
     display: inline-block;
   }
+  .panel-intro .heading.big {
+    font-size: clamp(2.1rem, 11vw, 3.4rem);
+    letter-spacing: -0.03em;
+    max-width: 100%;
+  }
   .skills .heading {
     font-size: clamp(2rem, 9vw, 3rem);
     letter-spacing: -0.02em;
@@ -891,6 +896,9 @@
 }
 
 @media (max-width: 560px) {
+  .panel-intro .heading.big {
+    font-size: clamp(1.95rem, 10.5vw, 2.55rem);
+  }
   .skills .heading {
     font-size: clamp(1.85rem, 8.5vw, 2.4rem);
   }
