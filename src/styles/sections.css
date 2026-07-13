@@ -532,24 +532,26 @@
   z-index: 1;
 }
 .p-index {
-  font-size: 0.66rem;
-  letter-spacing: 0.24em;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
   color: var(--accent);
 }
 .p-title {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(2.1rem, 4.8vw, 4.2rem);
-  line-height: 1;
+  font-size: clamp(1.55rem, 3.2vw, 2.65rem);
+  line-height: 1.05;
   text-transform: uppercase;
-  letter-spacing: -0.01em;
-  margin-top: 0.8rem;
+  letter-spacing: -0.015em;
+  margin-top: 0.65rem;
   overflow: hidden; /* masks the per-char rise on desktop */
 }
 .p-desc {
   color: var(--ink-dim);
   max-width: 42ch;
-  margin: 1.2rem 0 1.4rem;
+  margin: 0.9rem 0 1.15rem;
+  font-size: clamp(0.9rem, 1.35vw, 1.02rem);
+  line-height: 1.55;
 }
 .p-tags {
   display: flex;
