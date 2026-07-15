@@ -64,7 +64,7 @@ export const FINAL_AT = ZONE_LENGTH * 4; // past Lime→Cyan→Magenta→Amber
 
 /** Clear CORE with enough score + data bits to win the run */
 export const WIN = {
-  score: 40000,
+  score: 45000,
   coins: 75,
 };
 
