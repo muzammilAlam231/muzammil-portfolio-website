@@ -18,7 +18,13 @@ service cloud.firestore {
         request.resource.data.path is string &&
         request.resource.data.path.size() < 200 &&
         request.resource.data.sessionId is string &&
-        request.resource.data.sessionId.size() < 80;
+        request.resource.data.sessionId.size() < 80 &&
+        (!('country' in request.resource.data) ||
+          (request.resource.data.country is string && request.resource.data.country.size() < 80)) &&
+        (!('city' in request.resource.data) ||
+          (request.resource.data.city is string && request.resource.data.city.size() < 80)) &&
+        (!('countryCode' in request.resource.data) ||
+          (request.resource.data.countryCode is string && request.resource.data.countryCode.size() < 12));
       allow read, update, delete: if isAdmin();
     }
 

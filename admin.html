@@ -70,7 +70,7 @@
       <!-- OVERVIEW -->
       <section id="view-overview" class="view is-visible">
         <div class="range-bar" role="tablist" aria-label="Date range">
-          <button type="button" class="range-btn mono" data-range="7">7 DAYS</button>
+          <button type="button" class="range-btn mono" data-range="1">1 DAY</button>
           <button type="button" class="range-btn mono is-active" data-range="14">14 DAYS</button>
           <button type="button" class="range-btn mono" data-range="30">1 MONTH</button>
           <button type="button" class="range-btn mono" data-range="365">1 YEAR</button>
@@ -102,7 +102,7 @@
       <!-- TRAFFIC -->
       <section id="view-traffic" class="view">
         <div class="range-bar traffic-range" role="tablist" aria-label="Date range">
-          <button type="button" class="range-btn mono" data-range="7">7 DAYS</button>
+          <button type="button" class="range-btn mono" data-range="1">1 DAY</button>
           <button type="button" class="range-btn mono is-active" data-range="14">14 DAYS</button>
           <button type="button" class="range-btn mono" data-range="30">1 MONTH</button>
           <button type="button" class="range-btn mono" data-range="365">1 YEAR</button>
@@ -119,11 +119,15 @@
           </article>
         </div>
         <article class="panel wide">
+          <div class="panel-head"><h3 class="display">Locations</h3></div>
+          <div id="top-countries" class="table-wrap"></div>
+        </article>
+        <article class="panel wide">
           <div class="panel-head">
-            <h3 class="display">Live feed</h3>
-            <p class="mono dim">Last 40 hits</p>
+            <h3 class="display">Visit log</h3>
+            <p class="mono dim" id="feed-meta">Hits in selected range</p>
           </div>
-          <div id="live-feed" class="table-wrap"></div>
+          <div id="live-feed" class="table-wrap feed-wrap"></div>
         </article>
       </section>
 

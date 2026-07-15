@@ -9,7 +9,7 @@ const SESSION_KEY = 'mma_sid';
 const LAST_KEY = 'mma_last_pv';
 
 export const RANGES = [
-  { id: '7', label: '7 days', days: 7, buckets: 7, bucket: 'day' },
+  { id: '1', label: '1 day', days: 1, buckets: 24, bucket: 'hour' },
   { id: '14', label: '14 days', days: 14, buckets: 14, bucket: 'day' },
   { id: '30', label: '1 month', days: 30, buckets: 30, bucket: 'day' },
   { id: '365', label: '1 year', days: 365, buckets: 12, bucket: 'month' },
@@ -18,6 +18,53 @@ export const RANGES = [
 
 export function getRange(id) {
   return RANGES.find((r) => r.id === id) || RANGES[1];
+}
+
+const GEO_KEY = 'mma_geo';
+
+/** Resolve visitor city/country once per session (best-effort IP lookup). */
+async function resolveLocation() {
+  try {
+    const cached = sessionStorage.getItem(GEO_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    /* ignore bad cache */
+  }
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 2800);
+  try {
+    const res = await fetch('https://ipapi.co/json/', { signal: ctrl.signal });
+    if (!res.ok) throw new Error('geo');
+    const data = await res.json();
+    if (data.error) throw new Error(data.reason || 'geo');
+    const loc = {
+      country: String(data.country_name || '').slice(0, 64),
+      city: String(data.city || '').slice(0, 64),
+      countryCode: String(data.country_code || '').slice(0, 8),
+    };
+    sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
+    return loc;
+  } catch {
+    const empty = { country: '', city: '', countryCode: '' };
+    try {
+      sessionStorage.setItem(GEO_KEY, JSON.stringify(empty));
+    } catch {
+      /* private mode */
+    }
+    return empty;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function formatLocation(row) {
+  const city = (row.city || '').trim();
+  const country = (row.country || '').trim();
+  if (city && country) return `${city}, ${country}`;
+  if (country) return country;
+  if (city) return city;
+  return '—';
 }
 
 function sessionId() {
@@ -59,6 +106,8 @@ export async function trackPageview(path = location.pathname) {
     if (Date.now() - last < 30_000) return;
     sessionStorage.setItem(key, String(Date.now()));
 
+    const loc = await resolveLocation();
+
     await addDoc(collection(db, 'pageviews'), {
       path: path.slice(0, 180) || '/',
       ts: Timestamp.now(),
@@ -67,6 +116,9 @@ export async function trackPageview(path = location.pathname) {
       device: deviceKind(),
       screen: `${screen.width}x${screen.height}`,
       lang: (navigator.language || '').slice(0, 16),
+      country: loc.country,
+      city: loc.city,
+      countryCode: loc.countryCode,
     });
   } catch {
     /* never break the portfolio for analytics */
@@ -75,7 +127,7 @@ export async function trackPageview(path = location.pathname) {
 
 /**
  * Admin: fetch pageviews for a range.
- * @param {string} rangeId 7 | 14 | 30 | 365 | all
+ * @param {string} rangeId 1 | 14 | 30 | 365 | all
  */
 export async function fetchPageviews(rangeId = '14', max = 8000) {
   const range = getRange(rangeId);
@@ -103,6 +155,9 @@ export async function fetchPageviews(rangeId = '14', max = 8000) {
       device: data.device || 'desktop',
       screen: data.screen || '',
       lang: data.lang || '',
+      country: data.country || '',
+      city: data.city || '',
+      countryCode: data.countryCode || '',
     };
   });
 }
@@ -119,6 +174,33 @@ function buildDaySeries(byDay, days) {
       date: key,
       label: d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
       views: byDay[key] || 0,
+      isToday: i === 0,
+    });
+  }
+  return series;
+}
+
+function hourKey(d) {
+  const x = d instanceof Date ? d : new Date(d);
+  const y = x.getFullYear();
+  const m = String(x.getMonth() + 1).padStart(2, '0');
+  const dayN = String(x.getDate()).padStart(2, '0');
+  const h = String(x.getHours()).padStart(2, '0');
+  return `${y}-${m}-${dayN}T${h}`;
+}
+
+function buildHourSeries(byHour, hours = 24) {
+  const now = new Date();
+  now.setMinutes(0, 0, 0);
+  const series = [];
+  for (let i = hours - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setHours(d.getHours() - i);
+    const key = hourKey(d);
+    series.push({
+      date: key,
+      label: d.toLocaleTimeString(undefined, { hour: 'numeric' }),
+      views: byHour[key] || 0,
       isToday: i === 0,
     });
   }
@@ -159,8 +241,11 @@ function buildMonthSeries(byMonth, monthsBack, earliest) {
   return series;
 }
 
-/** Pick day vs month buckets so short histories still look like a real chart */
-function buildSeriesForRange(range, byDay, byMonth, earliest, inRangeCount) {
+/** Pick hour / day / month buckets so short histories still look like a real chart */
+function buildSeriesForRange(range, byDay, byMonth, byHour, earliest, inRangeCount) {
+  if (range.bucket === 'hour') {
+    return buildHourSeries(byHour, range.buckets || 24);
+  }
   if (range.bucket === 'day') {
     return buildDaySeries(byDay, range.days || 14);
   }
@@ -204,7 +289,9 @@ export function summarizeTraffic(rows, rangeId = '14') {
   const byDevice = { desktop: 0, mobile: 0, tablet: 0 };
   const byDay = {};
   const byMonth = {};
+  const byHour = {};
   const byRef = {};
+  const byCountry = {};
   let earliest = null;
 
   for (const r of inRange) {
@@ -212,6 +299,7 @@ export function summarizeTraffic(rows, rangeId = '14') {
     byDevice[r.device] = (byDevice[r.device] || 0) + 1;
     byDay[localKey(r.ts)] = (byDay[localKey(r.ts)] || 0) + 1;
     byMonth[monthKey(r.ts)] = (byMonth[monthKey(r.ts)] || 0) + 1;
+    byHour[hourKey(r.ts)] = (byHour[hourKey(r.ts)] || 0) + 1;
     if (!earliest || r.ts < earliest) earliest = r.ts;
 
     let host = 'direct';
@@ -223,9 +311,12 @@ export function summarizeTraffic(rows, rangeId = '14') {
       }
     }
     byRef[host] = (byRef[host] || 0) + 1;
+
+    const country = (r.country || '').trim() || 'Unknown';
+    byCountry[country] = (byCountry[country] || 0) + 1;
   }
 
-  const series = buildSeriesForRange(range, byDay, byMonth, earliest, inRange.length);
+  const series = buildSeriesForRange(range, byDay, byMonth, byHour, earliest, inRange.length);
 
   const topPaths = Object.entries(byPath)
     .sort((a, b) => b[1] - a[1])
@@ -236,6 +327,11 @@ export function summarizeTraffic(rows, rangeId = '14') {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
     .map(([host, views]) => ({ host, views }));
+
+  const topCountries = Object.entries(byCountry)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([country, views]) => ({ country, views }));
 
   return {
     rangeId: range.id,
@@ -253,7 +349,8 @@ export function summarizeTraffic(rows, rangeId = '14') {
     series,
     topPaths,
     topRefs,
-    recent: inRange.slice(0, 40),
+    topCountries,
+    recent: inRange.slice(0, 200),
     todayLabel: localKey(startOfToday),
   };
 }

@@ -8,7 +8,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from '../js/firebase.js';
-import { fetchPageviews, summarizeTraffic, getRange, RANGES } from '../js/analytics.js';
+import { fetchPageviews, summarizeTraffic, getRange, RANGES, formatLocation } from '../js/analytics.js';
 import {
   listWorksAdmin,
   createWork,
@@ -305,15 +305,30 @@ function renderTraffic(s) {
     s.topRefs.map((r) => `<tr><td>${esc(r.host)}</td><td>${r.views}</td></tr>`).join('')
   );
   renderTable(
+    '#top-countries',
+    ['LOCATION', 'HITS'],
+    (s.topCountries || [])
+      .map((c) => `<tr><td>${esc(c.country)}</td><td>${c.views}</td></tr>`)
+      .join('')
+  );
+
+  const feedMeta = $('#feed-meta');
+  if (feedMeta) {
+    feedMeta.textContent = `${s.recent.length} of ${s.rangeViews} hits · ${s.rangeLabel}`;
+  }
+
+  renderTable(
     '#live-feed',
-    ['WHEN', 'PATH', 'DEVICE', 'REF'],
+    ['DATE TIME', 'PATH', 'DEVICE', 'REF', 'LOCATION'],
     s.recent
       .map((r) => {
         const when = r.ts.toLocaleString(undefined, {
+          year: 'numeric',
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
         });
         let ref = 'direct';
         if (r.referrer) {
@@ -324,10 +339,11 @@ function renderTraffic(s) {
           }
         }
         return `<tr>
-          <td class="mono">${esc(when)}</td>
+          <td class="mono nowrap">${esc(when)}</td>
           <td class="mono">${esc(r.path)}</td>
           <td><span class="pill">${esc(r.device)}</span></td>
           <td class="dim">${esc(ref)}</td>
+          <td>${esc(formatLocation(r))}</td>
         </tr>`;
       })
       .join('')
