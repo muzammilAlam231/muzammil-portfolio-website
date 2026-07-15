@@ -1,18 +1,16 @@
 /* ════════════════════════════════════════════════════════════════
    AUDIO — WebAudio synth SFX + score-tier BGM + mute toggle.
 
-   BGM files live in /public/audio and switch by score:
-     < 10000  → bgm-till-10000.mp3  (loops)
-     < 20000  → bgm-till-15000.mp3  (loops)
-     ≥ 20000  → bgm-after-15000.mp3 (loops)
+   BGM files live in /public/audio:
+     < 20000  → bgm-till-10000.mp3  (first beat, loops)
+     ≥ 20000  → bgm-after-15000.mp3 (final beat, loops)
    ════════════════════════════════════════════════════════════════ */
 
 const BGM_VOL = 0.38;
 const SFX_MASTER = 0.5;
 
 const BGM_TRACKS = [
-  { maxScore: 10000, src: './audio/bgm-till-10000.mp3' },
-  { maxScore: 20000, src: './audio/bgm-till-15000.mp3' },
+  { maxScore: 20000, src: './audio/bgm-till-10000.mp3' },
   { maxScore: Infinity, src: './audio/bgm-after-15000.mp3' },
 ];
 
