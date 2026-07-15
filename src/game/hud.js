@@ -69,10 +69,9 @@ export function updateHud(run, { inFinal = false, demo = false } = {}) {
   if (els.objChip) {
     if (inFinal) {
       const sOk = run.score >= WIN.score;
-      const cOk = run.coins >= WIN.coins;
       els.objChip.classList.remove('hidden');
-      els.objChip.textContent = `CORE CLEAR · ${Math.min(Math.floor(run.score), WIN.score).toLocaleString()}/${WIN.score.toLocaleString()} PTS · ◈${Math.min(run.coins, WIN.coins)}/${WIN.coins}${sOk && cOk ? ' · READY' : ''}`;
-      els.objChip.classList.toggle('is-ready', sOk && cOk);
+      els.objChip.textContent = `CORE CLEAR · ${Math.min(Math.floor(run.score), WIN.score).toLocaleString()}/${WIN.score.toLocaleString()} PTS${sOk ? ' · READY' : ''}`;
+      els.objChip.classList.toggle('is-ready', sOk);
     } else {
       els.objChip.classList.add('hidden');
     }
@@ -167,7 +166,7 @@ export function showWin(run, { demo = false } = {}) {
   if (els.winSub) {
     els.winSub.textContent = demo
       ? 'WALKTHROUGH COMPLETE · CORE SECTOR CLEARED'
-      : `${WIN.score.toLocaleString()} PTS · ${WIN.coins} DATA BITS · CORE SECTOR`;
+      : `${WIN.score.toLocaleString()} PTS · CORE SECTOR`;
   }
   if (!demo) pushScore(run);
   showScreen('win');

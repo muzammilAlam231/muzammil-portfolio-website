@@ -51,7 +51,7 @@ function inFinalSector() {
 }
 
 function canWin() {
-  return inFinalSector() && run.score >= WIN.score && run.coins >= WIN.coins;
+  return inFinalSector() && run.score >= WIN.score;
 }
 
 /* ── boot ── */

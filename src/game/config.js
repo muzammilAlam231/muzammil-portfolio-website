@@ -62,11 +62,11 @@ export const ZONE_LENGTH = 420; // meters per sector before CORE
 /** After this many meters the run locks into CORE SECTOR (final) */
 export const FINAL_AT = ZONE_LENGTH * 4; // past Lime→Cyan→Magenta→Amber
 
-/** Clear CORE with enough score + data bits to win the run */
+/** Clear CORE once score reaches the target (coins already feed score) */
 export const WIN = {
-  score: 45000,
-  coins: 75,
+  score: 40000,
 };
+
 
 /**
  * Walkthrough assists — same speed/scoring from 0, but the bot
