@@ -1,13 +1,13 @@
 /* ════════════════════════════════════════════════════════════════
-   DEMO BOT — watches upcoming obstacles/coins and steers the runner.
-   Used by the walkthrough so visitors can see a clear without playing.
+   DEMO BOT — looks ahead, dodges early, chases coins when safe.
+   Walkthrough also keeps a permanent shield so a clear always finishes.
    ════════════════════════════════════════════════════════════════ */
 import { LANES } from './config.js';
 import { active } from './spawner.js';
 import { player, moveLane, tryJump, trySlide } from './player.js';
 
-const LOOK_NEAR = -28;
-const LOOK_FAR = 6;
+const LOOK_NEAR = -55;
+const LOOK_FAR = 8;
 
 function laneOfX(x) {
   let best = 1;
@@ -28,29 +28,53 @@ function threatsInLane(lane, zMin, zMax) {
     (o) =>
       !o.ghost &&
       !o.passed &&
-      o.z > zMin &&
-      o.z < zMax &&
-      Math.abs(o.x - x) < o.halfW + 0.55
+      o.z + o.halfLen > zMin &&
+      o.z - o.halfLen < zMax &&
+      Math.abs(o.x - x) < o.halfW + player.halfW + 0.15
   );
 }
 
-function freeLane(fromLane, zMin, zMax) {
-  const order = [fromLane, fromLane - 1, fromLane + 1, 0, 1, 2].filter(
-    (l, i, a) => l >= 0 && l <= 2 && a.indexOf(l) === i
-  );
-  for (const l of order) {
-    if (threatsInLane(l, zMin, zMax).length === 0) return l;
+function soonestThreat(lane, zMin, zMax) {
+  const list = threatsInLane(lane, zMin, zMax);
+  if (!list.length) return null;
+  list.sort((a, b) => b.z - a.z); // closest to player first (highest z toward 0)
+  return list[0];
+}
+
+function laneClearUntil(lane, zCutoff) {
+  return threatsInLane(lane, LOOK_NEAR, zCutoff).length === 0;
+}
+
+function bestEscape(fromLane, threatZ) {
+  const lookTo = Math.min(-1, threatZ + 2);
+  const candidates = [0, 1, 2]
+    .filter((l) => l !== fromLane)
+    .sort((a, b) => Math.abs(a - fromLane) - Math.abs(b - fromLane));
+
+  for (const l of candidates) {
+    if (laneClearUntil(l, lookTo)) return l;
   }
-  return fromLane;
+  // Prefer any lane with fewer threats
+  let best = fromLane;
+  let bestN = threatsInLane(fromLane, LOOK_NEAR, lookTo).length;
+  for (const l of [0, 1, 2]) {
+    const n = threatsInLane(l, LOOK_NEAR, lookTo).length;
+    if (n < bestN) {
+      bestN = n;
+      best = l;
+    }
+  }
+  return best;
 }
 
-function nearestCoinLane(fromLane) {
+function nearestPickupLane(kind) {
+  const list = kind === 'coin' ? active.coins : active.powerups;
   let best = null;
-  let bestZ = Infinity;
-  for (const c of active.coins) {
+  let bestZ = -Infinity;
+  for (const c of list) {
     if (c.taken) continue;
-    if (c.z < LOOK_NEAR || c.z > 2) continue;
-    if (c.z < bestZ) {
+    if (c.z < LOOK_NEAR || c.z > 1.5) continue;
+    if (c.z > bestZ) {
       bestZ = c.z;
       best = c;
     }
@@ -70,8 +94,9 @@ export function resetBot() {
 /**
  * @param {number} dt
  * @param {number} runTime
+ * @param {number} speed world speed (for earlier reactions when fast)
  */
-export function updateBot(dt, runTime) {
+export function updateBot(dt, runTime, speed = 16) {
   coolJump = Math.max(0, coolJump - dt);
   coolSlide = Math.max(0, coolSlide - dt);
   coolLane = Math.max(0, coolLane - dt);
@@ -79,56 +104,51 @@ export function updateBot(dt, runTime) {
   if (player.dead) return;
 
   const lane = player.lane;
-  const imminent = threatsInLane(lane, LOOK_NEAR, LOOK_FAR).sort((a, b) => b.z - a.z);
-  const closest = imminent[0];
+  // React farther out when moving faster (seconds of lead time)
+  const lead = Math.max(10, speed * 0.85);
+  const reactZ = -lead;
+  const threat = soonestThreat(lane, LOOK_NEAR, LOOK_FAR);
 
-  if (closest && closest.z > -14) {
-    if (closest.type === 'barrier' && coolJump <= 0 && player.grounded) {
-      tryJump();
-      coolJump = 0.55;
-      return;
-    }
-    if (closest.type === 'overhead' && coolSlide <= 0) {
-      trySlide();
-      coolSlide = 0.7;
-      return;
-    }
-    if ((closest.type === 'wall' || closest.type === 'freight') && coolLane <= 0) {
-      const safe = freeLane(lane, LOOK_NEAR, -2);
-      if (safe !== lane) {
-        moveLane(safe - lane, runTime);
-        coolLane = 0.35;
+  if (threat && threat.z > reactZ) {
+    if (threat.type === 'barrier') {
+      // Jump early enough to clear the top
+      if (threat.z > -speed * 0.55 && coolJump <= 0 && player.grounded && !player.sliding) {
+        tryJump();
+        coolJump = 0.45;
+        return;
       }
-      return;
-    }
-  }
-
-  // Soft coin chase when the path is clear
-  if (coolLane <= 0 && !player.sliding && player.grounded) {
-    const coinLane = nearestCoinLane(lane);
-    if (coinLane != null && coinLane !== lane) {
-      const mid = Math.min(lane, coinLane);
-      const blocked = threatsInLane(coinLane, LOOK_NEAR, -4).length > 0;
-      if (!blocked) {
-        moveLane(coinLane - lane, runTime);
-        coolLane = 0.4;
-      } else if (mid !== lane && threatsInLane(mid, LOOK_NEAR, -4).length === 0) {
-        moveLane(mid - lane, runTime);
-        coolLane = 0.35;
+    } else if (threat.type === 'overhead') {
+      if (threat.z > -speed * 0.5 && coolSlide <= 0 && !player.sliding) {
+        trySlide();
+        coolSlide = 0.65;
+        return;
+      }
+    } else if (threat.type === 'wall' || threat.type === 'freight') {
+      if (coolLane <= 0) {
+        const safe = bestEscape(lane, threat.z);
+        if (safe !== lane) {
+          moveLane(safe - lane, runTime);
+          coolLane = 0.22;
+          return;
+        }
       }
     }
   }
 
-  // Grab power-ups in adjacent lanes
-  if (coolLane <= 0) {
-    for (const p of active.powerups) {
-      if (p.taken || p.z < LOOK_NEAR || p.z > 1) continue;
-      const pl = laneOfX(p.x);
-      if (pl !== lane && threatsInLane(pl, LOOK_NEAR, -3).length === 0) {
-        moveLane(pl - lane, runTime);
-        coolLane = 0.4;
-        break;
-      }
-    }
+  // Don't chase pickups while a threat is close
+  if (threat && threat.z > -18) return;
+
+  if (coolLane > 0 || player.sliding || !player.grounded) return;
+
+  // Power-ups first, then coins — only into clear lanes
+  for (const kind of ['power', 'coin']) {
+    const target = nearestPickupLane(kind === 'power' ? 'power' : 'coin');
+    if (target == null || target === lane) continue;
+    if (!laneClearUntil(target, -6)) continue;
+    // Stepping through middle lane must also be clear for 2-lane hops
+    if (Math.abs(target - lane) === 2 && !laneClearUntil(1, -6)) continue;
+    moveLane(target - lane, runTime);
+    coolLane = 0.28;
+    return;
   }
 }

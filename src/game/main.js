@@ -231,6 +231,10 @@ function winRun() {
 /* ── collision event handlers ── */
 const events = {
   onHit(o) {
+    if (demo && DEMO.godMode) {
+      o.ghost = true;
+      return;
+    }
     if (run.power.shield > 0) {
       o.ghost = true;
       shieldSave();
@@ -302,6 +306,9 @@ engine.onFrame = (dt) => {
     if (demo && DEMO.magnetBoost) {
       run.power.magnet = Math.max(run.power.magnet, 1.5);
     }
+    if (demo && DEMO.godMode) {
+      run.power.shield = Math.max(run.power.shield, 1.5);
+    }
 
     if (run.comboT > 0) {
       run.comboT -= dt;
@@ -325,7 +332,7 @@ engine.onFrame = (dt) => {
   updateWorld(dt, dz, run.dist, run.speed / speedMult);
   updateSpawner(dz, dt, run.dist, tier, player, run.power.magnet > 0);
 
-  if (playing && demo) updateBot(dt, run.runTime);
+  if (playing && demo) updateBot(dt, run.runTime, run.speed);
   updatePlayer(dt, run.speed / speedMult);
 
   if (playing) {
