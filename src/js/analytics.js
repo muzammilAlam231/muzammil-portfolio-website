@@ -21,41 +21,85 @@ export function getRange(id) {
 }
 
 const GEO_KEY = 'mma_geo';
+const GEO_FAIL_KEY = 'mma_geo_fail';
+
+function normalizeLoc(country, city, countryCode) {
+  return {
+    country: String(country || '').slice(0, 64),
+    city: String(city || '').slice(0, 64),
+    countryCode: String(countryCode || '').slice(0, 8),
+  };
+}
+
+async function fetchGeoJson(url, ms = 3000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** Resolve visitor city/country once per session (best-effort IP lookup). */
 async function resolveLocation() {
   try {
     const cached = sessionStorage.getItem(GEO_KEY);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      const loc = JSON.parse(cached);
+      if (loc?.country || loc?.city) return loc;
+    }
   } catch {
     /* ignore bad cache */
   }
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 2800);
+  // Avoid hammering APIs if we just failed
   try {
-    const res = await fetch('https://ipapi.co/json/', { signal: ctrl.signal });
-    if (!res.ok) throw new Error('geo');
-    const data = await res.json();
-    if (data.error) throw new Error(data.reason || 'geo');
-    const loc = {
-      country: String(data.country_name || '').slice(0, 64),
-      city: String(data.city || '').slice(0, 64),
-      countryCode: String(data.country_code || '').slice(0, 8),
-    };
-    sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
-    return loc;
-  } catch {
-    const empty = { country: '', city: '', countryCode: '' };
-    try {
-      sessionStorage.setItem(GEO_KEY, JSON.stringify(empty));
-    } catch {
-      /* private mode */
+    const failAt = +sessionStorage.getItem(GEO_FAIL_KEY) || 0;
+    if (Date.now() - failAt < 60_000) {
+      return { country: '', city: '', countryCode: '' };
     }
-    return empty;
-  } finally {
-    clearTimeout(timer);
+  } catch {
+    /* ignore */
   }
+
+  const providers = [
+    async () => {
+      const data = await fetchGeoJson('https://ipwho.is/');
+      if (data?.success === false) throw new Error('ipwho');
+      return normalizeLoc(data.country, data.city, data.country_code);
+    },
+    async () => {
+      const data = await fetchGeoJson('https://get.geojs.io/v1/ip/geo.json');
+      return normalizeLoc(data.country, data.city, data.country_code);
+    },
+    async () => {
+      const data = await fetchGeoJson('https://geo.kamero.ai/api/geo');
+      return normalizeLoc(data.country || data.country_name, data.city, data.country_code || data.countryCode);
+    },
+  ];
+
+  for (const run of providers) {
+    try {
+      const loc = await run();
+      if (loc.country || loc.city) {
+        sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
+        sessionStorage.removeItem(GEO_FAIL_KEY);
+        return loc;
+      }
+    } catch {
+      /* try next provider */
+    }
+  }
+
+  try {
+    sessionStorage.setItem(GEO_FAIL_KEY, String(Date.now()));
+  } catch {
+    /* private mode */
+  }
+  return { country: '', city: '', countryCode: '' };
 }
 
 export function formatLocation(row) {
