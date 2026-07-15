@@ -68,14 +68,6 @@ export const WIN = {
   coins: 75,
 };
 
-/** Watchable bot walkthrough — faster clear, tough pilot */
-export const DEMO = {
-  speedMult: 1.45,
-  scoreMult: 11,
-  magnetBoost: true,
-  /** Permanent shield so the walkthrough always reaches a win */
-  godMode: true,
-};
 
 export const COLORS = {
   bg: 0x050508,

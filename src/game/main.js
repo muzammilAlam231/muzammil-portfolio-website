@@ -11,7 +11,7 @@
    5. scoring: distance pts × combo multiplier × (×2 power-up)
    6. CORE SECTOR + score/coins gates → win
    ════════════════════════════════════════════════════════════════ */
-import { RUN, SPAWN, POWERUPS, COMBO, REDUCED, COLORS, WIN, DEMO, ZONES } from './config.js';
+import { RUN, SPAWN, POWERUPS, COMBO, REDUCED, COLORS, WIN, ZONES } from './config.js';
 import { initEngine, engine, updateCamera, shake, slowMo, setBloomPulse } from './engine.js';
 import { initWorld, updateWorld, resetWorld, world } from './world.js';
 import { initEffects, updateEffects, burstFX, setTrailColor, shockwave } from './effects.js';
@@ -146,7 +146,7 @@ function startRun(asDemo = false) {
   hud.showScreen('run');
   hud.setDemoBanner(demo);
   startBgm();
-  if (demo) hud.floatMsg('BOT PILOT ONLINE');
+  if (demo) hud.floatMsg('BOT PILOT · FAIR RUN FROM 0');
 }
 
 function restart() {
@@ -231,10 +231,6 @@ function winRun() {
 /* ── collision event handlers ── */
 const events = {
   onHit(o) {
-    if (demo && DEMO.godMode) {
-      o.ghost = true;
-      return;
-    }
     if (run.power.shield > 0) {
       o.ghost = true;
       shieldSave();
@@ -290,10 +286,8 @@ engine.onFrame = (dt) => {
   }
 
   const playing = state === 'run' || state === 'demo';
-  const speedMult = demo ? DEMO.speedMult : 1;
-  const scoreMult = demo ? DEMO.scoreMult : 1;
 
-  run.speed = Math.min(RUN.baseSpeed + run.dist * RUN.accelPerMeter, RUN.maxSpeed) * speedMult;
+  run.speed = Math.min(RUN.baseSpeed + run.dist * RUN.accelPerMeter, RUN.maxSpeed);
   const dz = (playing ? run.speed : run.speed * 0.3) * dt;
 
   if (playing) {
@@ -301,14 +295,7 @@ engine.onFrame = (dt) => {
     run.runTime += dt;
     run.dist += dz;
     const coreBonus = inFinalSector() ? 1.35 : 1;
-    run.score += dz * run.multiplier * scoreMult * coreBonus;
-
-    if (demo && DEMO.magnetBoost) {
-      run.power.magnet = Math.max(run.power.magnet, 1.5);
-    }
-    if (demo && DEMO.godMode) {
-      run.power.shield = Math.max(run.power.shield, 1.5);
-    }
+    run.score += dz * run.multiplier * coreBonus;
 
     if (run.comboT > 0) {
       run.comboT -= dt;
@@ -325,15 +312,15 @@ engine.onFrame = (dt) => {
       }
     }
 
-    engine.fovKick = Math.min(1, (run.speed / speedMult - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed));
+    engine.fovKick = Math.min(1, (run.speed - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed));
   }
 
   const tier = Math.min(Math.floor(run.dist / SPAWN.tierEvery), 5);
-  updateWorld(dt, dz, run.dist, run.speed / speedMult);
+  updateWorld(dt, dz, run.dist, run.speed);
   updateSpawner(dz, dt, run.dist, tier, player, run.power.magnet > 0);
 
   if (playing && demo) updateBot(dt, run.runTime, run.speed);
-  updatePlayer(dt, run.speed / speedMult);
+  updatePlayer(dt, run.speed);
 
   if (playing) {
     checkCollisions(player, run.runTime, events);
@@ -344,10 +331,10 @@ engine.onFrame = (dt) => {
     if (canWin()) winRun();
   }
 
-  const speed01 = Math.min(1, (run.speed / speedMult - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed));
+  const speed01 = Math.min(1, (run.speed - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed));
   setAberration(speed01);
   setBloomPulse(speed01);
 
-  updateEffects(dt, dz, run.speed / speedMult);
-  updateCamera(dt, player, run.speed / speedMult);
+  updateEffects(dt, dz, run.speed);
+  updateCamera(dt, player, run.speed);
 };
