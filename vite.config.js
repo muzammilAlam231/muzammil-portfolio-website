@@ -7,12 +7,12 @@ export default defineConfig({
   build: {
     target: 'es2020',
     assetsInlineLimit: 8192,
-    // Portfolio + standalone games + admin.
+    // Two entries: the portfolio and the standalone game page.
+    // The game's JS is only loaded when /play.html is visited.
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
         play: resolve(__dirname, 'play.html'),
-        fight: resolve(__dirname, 'fight.html'),
         admin: resolve(__dirname, 'admin.html'),
       },
     },

@@ -16,10 +16,6 @@
         "destination": "/admin.html"
       },
       {
-        "source": "/fight",
-        "destination": "/fight.html"
-      },
-      {
         "source": "/play",
         "destination": "/play.html"
       }
