@@ -68,6 +68,15 @@ export const WIN = {
   coins: 75,
 };
 
+/**
+ * Walkthrough assists — same speed/scoring from 0, but the bot
+ * cannot die (otherwise a full clear is unreliable for visitors).
+ */
+export const DEMO = {
+  invulnerable: true,
+  magnet: true,
+};
+
 
 export const COLORS = {
   bg: 0x050508,

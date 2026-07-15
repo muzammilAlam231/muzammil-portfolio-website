@@ -11,7 +11,7 @@
    5. scoring: distance pts × combo multiplier × (×2 power-up)
    6. CORE SECTOR + score/coins gates → win
    ════════════════════════════════════════════════════════════════ */
-import { RUN, SPAWN, POWERUPS, COMBO, REDUCED, COLORS, WIN, ZONES } from './config.js';
+import { RUN, SPAWN, POWERUPS, COMBO, REDUCED, COLORS, WIN, DEMO, ZONES } from './config.js';
 import { initEngine, engine, updateCamera, shake, slowMo, setBloomPulse } from './engine.js';
 import { initWorld, updateWorld, resetWorld, world } from './world.js';
 import { initEffects, updateEffects, burstFX, setTrailColor, shockwave } from './effects.js';
@@ -146,7 +146,7 @@ function startRun(asDemo = false) {
   hud.showScreen('run');
   hud.setDemoBanner(demo);
   startBgm();
-  if (demo) hud.floatMsg('BOT PILOT · FAIR RUN FROM 0');
+  if (demo) hud.floatMsg('WALKTHROUGH · BOT CANNOT DIE');
 }
 
 function restart() {
@@ -231,6 +231,11 @@ function winRun() {
 /* ── collision event handlers ── */
 const events = {
   onHit(o) {
+    // Walkthrough bot never dies — still plays from score 0 at normal speed
+    if (demo && DEMO.invulnerable) {
+      o.ghost = true;
+      return;
+    }
     if (run.power.shield > 0) {
       o.ghost = true;
       shieldSave();
@@ -296,6 +301,11 @@ engine.onFrame = (dt) => {
     run.dist += dz;
     const coreBonus = inFinalSector() ? 1.35 : 1;
     run.score += dz * run.multiplier * coreBonus;
+
+    // Help the walkthrough gather data bits (same coin value when collected)
+    if (demo && DEMO.magnet) {
+      run.power.magnet = Math.max(run.power.magnet, 2);
+    }
 
     if (run.comboT > 0) {
       run.comboT -= dt;
