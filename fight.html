@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NEON ARENA — Muzammil Alam</title>
+  <meta name="description" content="NEON ARENA — a 2D boss-rush fighter. Built by Muhammad Muzammil Alam." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <noscript><style>.overlay{display:none!important}</style></noscript>
+</head>
+<body class="arena-page">
+  <div class="crt" aria-hidden="true"></div>
+
+  <canvas id="arena-canvas"></canvas>
+
+  <!-- ══════════ HUD ══════════ -->
+  <div id="hud" class="hidden" aria-live="off">
+    <div class="hud-bars">
+      <div class="bar-block player-bar">
+        <p class="mono bar-label">YOU</p>
+        <div class="bar-track"><div id="hp-player" class="bar-fill accent"></div></div>
+        <div class="bar-track thin"><div id="stamina-player" class="bar-fill stamina"></div></div>
+      </div>
+      <div class="hud-mid mono">
+        <span id="boss-name">PULSE</span>
+        <span class="dim" id="boss-num">01 / 03</span>
+      </div>
+      <div class="bar-block boss-bar">
+        <p class="mono bar-label" id="boss-label">PULSE</p>
+        <div class="bar-track"><div id="hp-boss" class="bar-fill danger"></div></div>
+      </div>
+    </div>
+    <div class="hud-buttons">
+      <button id="btn-mute" class="mono hud-btn" type="button" aria-label="Toggle sound">SND</button>
+      <button id="btn-pause" class="mono hud-btn" type="button" aria-label="Pause">II</button>
+      <a href="./" class="mono hud-btn" aria-label="Back to portfolio">EXIT</a>
+    </div>
+    <p class="toast mono" id="toast"></p>
+  </div>
+
+  <!-- Mobile touch pad -->
+  <div id="touch-pad" class="touch-pad hidden" aria-hidden="true">
+    <div class="touch-move">
+      <button type="button" data-act="left" class="tbtn">◄</button>
+      <button type="button" data-act="right" class="tbtn">►</button>
+    </div>
+    <div class="touch-actions">
+      <button type="button" data-act="block" class="tbtn">BLK</button>
+      <button type="button" data-act="dodge" class="tbtn">DGE</button>
+      <button type="button" data-act="light" class="tbtn accent">J</button>
+      <button type="button" data-act="heavy" class="tbtn accent">K</button>
+    </div>
+  </div>
+
+  <!-- ══════════ START ══════════ -->
+  <div id="screen-start" class="overlay">
+    <p class="ov-eyebrow mono">MUZAMMIL.DEV PRESENTS</p>
+    <h1 class="ov-title display">NEON<span class="acc">ARENA</span></h1>
+    <p class="ov-sub mono">BOSS RUSH · THREE OPPONENTS · ONE RING</p>
+    <div class="controls-hint mono" id="controls-hint">
+      <span><b>A·D</b> — MOVE</span>
+      <span><b>J / Z</b> — LIGHT</span>
+      <span><b>K / X</b> — HEAVY</span>
+      <span><b>L / SHIFT</b> — BLOCK</span>
+      <span><b>SPACE</b> — DODGE</span>
+      <span class="touch-only"><b>TOUCH PAD</b> — FIGHT</span>
+    </div>
+    <p class="ov-cta mono blink" id="start-cta">PRESS ANY KEY / TAP TO FIGHT</p>
+    <a class="ov-back mono" href="./">← BACK TO PORTFOLIO</a>
+  </div>
+
+  <!-- ══════════ BETWEEN BOSSES ══════════ -->
+  <div id="screen-between" class="overlay hidden">
+    <p class="ov-eyebrow mono">OPPONENT DOWN</p>
+    <h2 class="ov-title-sm display">VICTORY</h2>
+    <p class="ov-sub mono" id="between-msg">NEXT: RAZOR</p>
+    <p class="ov-cta mono blink">PRESS ANY KEY / TAP — CONTINUE</p>
+  </div>
+
+  <!-- ══════════ PAUSE ══════════ -->
+  <div id="screen-pause" class="overlay hidden">
+    <h2 class="ov-title-sm display">PAUSED</h2>
+    <p class="ov-cta mono">P / TAP — RESUME</p>
+    <a class="ov-back mono" href="./">← QUIT TO PORTFOLIO</a>
+  </div>
+
+  <!-- ══════════ LOSE ══════════ -->
+  <div id="screen-lose" class="overlay hidden">
+    <p class="ov-eyebrow mono glitch-red">SYSTEM FAILURE</p>
+    <h2 class="ov-title-sm display">DEFEATED</h2>
+    <p class="ov-sub mono" id="lose-msg">Taken down by Pulse</p>
+    <div class="over-actions">
+      <button id="btn-retry" class="ov-btn mono" type="button">▶ RETRY <span class="dim">(R)</span></button>
+      <a class="ov-btn ghost mono" href="./">← BACK TO PORTFOLIO</a>
+    </div>
+  </div>
+
+  <!-- ══════════ WIN ══════════ -->
+  <div id="screen-win" class="overlay hidden">
+    <p class="ov-eyebrow mono">ARENA CLEARED</p>
+    <h2 class="ov-title-sm display">CHAMPION</h2>
+    <p class="ov-sub mono">All three bosses down. Neon holds.</p>
+    <div class="over-actions">
+      <button id="btn-again" class="ov-btn mono" type="button">▶ RUN IT BACK <span class="dim">(R)</span></button>
+      <a class="ov-btn ghost mono" href="./">← BACK TO PORTFOLIO</a>
+    </div>
+  </div>
+
+  <script type="module" src="/src/arena/main.js"></script>
+</body>
+</html>
