@@ -20,8 +20,7 @@ export function getRange(id) {
   return RANGES.find((r) => r.id === id) || RANGES[1];
 }
 
-const GEO_KEY = 'mma_geo';
-const GEO_FAIL_KEY = 'mma_geo_fail';
+const GEO_KEY = 'mma_geo_v2';
 
 function normalizeLoc(country, city, countryCode) {
   return {
@@ -31,11 +30,41 @@ function normalizeLoc(country, city, countryCode) {
   };
 }
 
-async function fetchGeoJson(url, ms = 3000) {
+function countryNameFromCode(code) {
+  const cc = String(code || '').trim().toUpperCase();
+  if (!cc || cc.length !== 2 || cc === 'XX' || cc === 'T1') return '';
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(cc) || cc;
+  } catch {
+    return cc;
+  }
+}
+
+function timezoneHint() {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const city = timezone.includes('/')
+    ? timezone.split('/').pop().replace(/_/g, ' ')
+    : '';
+  return { timezone: timezone.slice(0, 64), city: city.slice(0, 64) };
+}
+
+async function fetchText(url, ms = 2800) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store', mode: 'cors' });
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchGeoJson(url, ms = 2800) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store', mode: 'cors' });
     if (!res.ok) throw new Error(`http ${res.status}`);
     return await res.json();
   } finally {
@@ -43,63 +72,79 @@ async function fetchGeoJson(url, ms = 3000) {
   }
 }
 
-/** Resolve visitor city/country once per session (best-effort IP lookup). */
+/** Cloudflare edge geo — country code, CORS-friendly, rarely blocked */
+async function fromCloudflareTrace() {
+  const text = await fetchText('https://www.cloudflare.com/cdn-cgi/trace');
+  const code = (text.match(/^loc=([A-Za-z0-9]+)$/m) || [])[1] || '';
+  const name = countryNameFromCode(code);
+  if (!name) throw new Error('cf loc');
+  return normalizeLoc(name, '', code.toUpperCase());
+}
+
+/** Resolve visitor city/country once per session. */
 async function resolveLocation() {
+  const hint = timezoneHint();
+
   try {
     const cached = sessionStorage.getItem(GEO_KEY);
     if (cached) {
       const loc = JSON.parse(cached);
-      if (loc?.country || loc?.city) return loc;
-    }
-  } catch {
-    /* ignore bad cache */
-  }
-
-  // Avoid hammering APIs if we just failed
-  try {
-    const failAt = +sessionStorage.getItem(GEO_FAIL_KEY) || 0;
-    if (Date.now() - failAt < 60_000) {
-      return { country: '', city: '', countryCode: '' };
+      if (loc?.country || loc?.city) {
+        return { ...loc, timezone: loc.timezone || hint.timezone };
+      }
     }
   } catch {
     /* ignore */
   }
 
-  const providers = [
-    async () => {
+  const settled = await Promise.allSettled([
+    fromCloudflareTrace(),
+    (async () => {
       const data = await fetchGeoJson('https://ipwho.is/');
       if (data?.success === false) throw new Error('ipwho');
       return normalizeLoc(data.country, data.city, data.country_code);
-    },
-    async () => {
+    })(),
+    (async () => {
       const data = await fetchGeoJson('https://get.geojs.io/v1/ip/geo.json');
       return normalizeLoc(data.country, data.city, data.country_code);
-    },
-    async () => {
-      const data = await fetchGeoJson('https://geo.kamero.ai/api/geo');
-      return normalizeLoc(data.country || data.country_name, data.city, data.country_code || data.countryCode);
-    },
-  ];
+    })(),
+    (async () => {
+      const data = await fetchGeoJson('https://api.country.is/');
+      const code = data.country || '';
+      return normalizeLoc(countryNameFromCode(code), '', code);
+    })(),
+  ]);
 
-  for (const run of providers) {
+  let country = '';
+  let city = '';
+  let countryCode = '';
+
+  for (const result of settled) {
+    if (result.status !== 'fulfilled') continue;
+    const loc = result.value;
+    if (!country && loc.country) country = loc.country;
+    if (!city && loc.city) city = loc.city;
+    if (!countryCode && loc.countryCode) countryCode = loc.countryCode;
+  }
+
+  // Soft fallback: timezone city when IP city missing (e.g. Asia/Karachi → Karachi)
+  if (!city && hint.city) city = hint.city;
+  if (!country && countryCode) country = countryNameFromCode(countryCode);
+
+  const loc = {
+    ...normalizeLoc(country, city, countryCode),
+    timezone: hint.timezone,
+  };
+
+  if (loc.country || loc.city) {
     try {
-      const loc = await run();
-      if (loc.country || loc.city) {
-        sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
-        sessionStorage.removeItem(GEO_FAIL_KEY);
-        return loc;
-      }
+      sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
     } catch {
-      /* try next provider */
+      /* private mode */
     }
   }
 
-  try {
-    sessionStorage.setItem(GEO_FAIL_KEY, String(Date.now()));
-  } catch {
-    /* private mode */
-  }
-  return { country: '', city: '', countryCode: '' };
+  return loc;
 }
 
 export function formatLocation(row) {
@@ -108,6 +153,8 @@ export function formatLocation(row) {
   if (city && country) return `${city}, ${country}`;
   if (country) return country;
   if (city) return city;
+  const tz = (row.timezone || '').trim().replace(/_/g, ' ');
+  if (tz) return tz;
   return '—';
 }
 
@@ -160,9 +207,10 @@ export async function trackPageview(path = location.pathname) {
       device: deviceKind(),
       screen: `${screen.width}x${screen.height}`,
       lang: (navigator.language || '').slice(0, 16),
-      country: loc.country,
-      city: loc.city,
-      countryCode: loc.countryCode,
+      country: loc.country || '',
+      city: loc.city || '',
+      countryCode: loc.countryCode || '',
+      timezone: loc.timezone || '',
     });
   } catch {
     /* never break the portfolio for analytics */
@@ -202,6 +250,7 @@ export async function fetchPageviews(rangeId = '14', max = 8000) {
       country: data.country || '',
       city: data.city || '',
       countryCode: data.countryCode || '',
+      timezone: data.timezone || '',
     };
   });
 }
@@ -356,8 +405,9 @@ export function summarizeTraffic(rows, rangeId = '14') {
     }
     byRef[host] = (byRef[host] || 0) + 1;
 
-    const country = (r.country || '').trim() || 'Unknown';
-    byCountry[country] = (byCountry[country] || 0) + 1;
+    const label = formatLocation(r);
+    const key = label === '—' ? 'Unknown' : label;
+    byCountry[key] = (byCountry[key] || 0) + 1;
   }
 
   const series = buildSeriesForRange(range, byDay, byMonth, byHour, earliest, inRange.length);

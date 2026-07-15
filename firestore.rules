@@ -24,7 +24,9 @@ service cloud.firestore {
         (!('city' in request.resource.data) ||
           (request.resource.data.city is string && request.resource.data.city.size() < 80)) &&
         (!('countryCode' in request.resource.data) ||
-          (request.resource.data.countryCode is string && request.resource.data.countryCode.size() < 12));
+          (request.resource.data.countryCode is string && request.resource.data.countryCode.size() < 12)) &&
+        (!('timezone' in request.resource.data) ||
+          (request.resource.data.timezone is string && request.resource.data.timezone.size() < 80));
       allow read, update, delete: if isAdmin();
     }
 
