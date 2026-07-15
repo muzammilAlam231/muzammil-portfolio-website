@@ -20,7 +20,7 @@ export function getRange(id) {
   return RANGES.find((r) => r.id === id) || RANGES[1];
 }
 
-const GEO_KEY = 'mma_geo_v3';
+const GEO_KEY = 'mma_geo_v4';
 
 function normalizeLoc(country, city, countryCode) {
   return {
@@ -53,7 +53,7 @@ function timezoneHint() {
   return { timezone: timezone.slice(0, 64), city: city.slice(0, 64) };
 }
 
-/** Browser locale region (e.g. en-PK → Pakistan) — works offline / with adblock */
+/** Browser locale region (e.g. en-PK → Pakistan) — offline fallback only */
 function localeHint() {
   const langs = [...(navigator.languages || []), navigator.language || ''];
   for (const lang of langs) {
@@ -66,13 +66,16 @@ function localeHint() {
   return normalizeLoc('', '', '');
 }
 
-/** Always-available baseline so desktop never stores a blank location */
+/**
+ * Offline baseline. City from timezone is only safe with locale country
+ * (same device), never mixed later with a VPN IP country.
+ */
 function baseLocation() {
   const tz = timezoneHint();
   const locale = localeHint();
   return {
     country: locale.country,
-    city: tz.city,
+    city: locale.country ? tz.city : '',
     countryCode: locale.countryCode,
     timezone: tz.timezone,
   };
@@ -110,7 +113,7 @@ async function fromCloudflareTrace() {
   return normalizeLoc(name, '', code.toUpperCase());
 }
 
-/** Merge IP geo on top of the offline baseline (timezone / locale). */
+/** IP geo wins when present; timezone city is never mixed with a VPN country. */
 async function resolveLocation() {
   const base = baseLocation();
 
@@ -120,9 +123,9 @@ async function resolveLocation() {
       const loc = JSON.parse(cached);
       if (loc?.country || loc?.city) {
         return {
-          country: loc.country || base.country,
-          city: loc.city || base.city,
-          countryCode: loc.countryCode || base.countryCode,
+          country: loc.country || '',
+          city: loc.city || '',
+          countryCode: loc.countryCode || '',
           timezone: loc.timezone || base.timezone,
         };
       }
@@ -131,15 +134,14 @@ async function resolveLocation() {
     /* ignore */
   }
 
-  let country = base.country;
-  let city = base.city;
-  let countryCode = base.countryCode;
+  let netCountry = '';
+  let netCity = '';
+  let netCode = '';
 
-  // Prefer Cloudflare first (rarely blocked), then fill city from others
   try {
     const cf = await fromCloudflareTrace();
-    if (cf.country) country = cf.country;
-    if (cf.countryCode) countryCode = cf.countryCode;
+    if (cf.country) netCountry = cf.country;
+    if (cf.countryCode) netCode = cf.countryCode;
   } catch {
     /* adblock / offline */
   }
@@ -159,13 +161,28 @@ async function resolveLocation() {
   for (const result of settled) {
     if (result.status !== 'fulfilled') continue;
     const loc = result.value;
-    if (loc.country) country = loc.country;
-    if (loc.city) city = loc.city;
-    if (loc.countryCode) countryCode = loc.countryCode;
+    if (loc.country) netCountry = loc.country;
+    if (loc.city) netCity = loc.city;
+    if (loc.countryCode) netCode = loc.countryCode;
   }
 
-  if (!country && countryCode) country = countryNameFromCode(countryCode);
-  if (!city && base.city) city = base.city;
+  if (!netCountry && netCode) netCountry = countryNameFromCode(netCode);
+
+  // Network (VPN/IP) is authoritative — do not attach local timezone city
+  let country = '';
+  let city = '';
+  let countryCode = '';
+
+  if (netCountry || netCity) {
+    country = netCountry;
+    city = netCity; // may be empty → show country only
+    countryCode = netCode;
+  } else {
+    // Offline / blocked: device timezone + locale only
+    country = base.country;
+    city = base.city;
+    countryCode = base.countryCode;
+  }
 
   const loc = {
     ...normalizeLoc(country, city, countryCode),
