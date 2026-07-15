@@ -20,7 +20,7 @@ export function getRange(id) {
   return RANGES.find((r) => r.id === id) || RANGES[1];
 }
 
-const GEO_KEY = 'mma_geo_v2';
+const GEO_KEY = 'mma_geo_v3';
 
 function normalizeLoc(country, city, countryCode) {
   return {
@@ -41,14 +41,44 @@ function countryNameFromCode(code) {
 }
 
 function timezoneHint() {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  let timezone = '';
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch {
+    timezone = '';
+  }
   const city = timezone.includes('/')
     ? timezone.split('/').pop().replace(/_/g, ' ')
     : '';
   return { timezone: timezone.slice(0, 64), city: city.slice(0, 64) };
 }
 
-async function fetchText(url, ms = 2800) {
+/** Browser locale region (e.g. en-PK → Pakistan) — works offline / with adblock */
+function localeHint() {
+  const langs = [...(navigator.languages || []), navigator.language || ''];
+  for (const lang of langs) {
+    const m = String(lang).match(/-([A-Za-z]{2})\b/);
+    if (!m) continue;
+    const code = m[1].toUpperCase();
+    const name = countryNameFromCode(code);
+    if (name) return normalizeLoc(name, '', code);
+  }
+  return normalizeLoc('', '', '');
+}
+
+/** Always-available baseline so desktop never stores a blank location */
+function baseLocation() {
+  const tz = timezoneHint();
+  const locale = localeHint();
+  return {
+    country: locale.country,
+    city: tz.city,
+    countryCode: locale.countryCode,
+    timezone: tz.timezone,
+  };
+}
+
+async function fetchText(url, ms = 2200) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -60,7 +90,7 @@ async function fetchText(url, ms = 2800) {
   }
 }
 
-async function fetchGeoJson(url, ms = 2800) {
+async function fetchGeoJson(url, ms = 2200) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -72,76 +102,80 @@ async function fetchGeoJson(url, ms = 2800) {
   }
 }
 
-/** Cloudflare edge geo — country code, CORS-friendly, rarely blocked */
 async function fromCloudflareTrace() {
-  const text = await fetchText('https://www.cloudflare.com/cdn-cgi/trace');
+  const text = await fetchText('https://www.cloudflare.com/cdn-cgi/trace', 2000);
   const code = (text.match(/^loc=([A-Za-z0-9]+)$/m) || [])[1] || '';
   const name = countryNameFromCode(code);
   if (!name) throw new Error('cf loc');
   return normalizeLoc(name, '', code.toUpperCase());
 }
 
-/** Resolve visitor city/country once per session. */
+/** Merge IP geo on top of the offline baseline (timezone / locale). */
 async function resolveLocation() {
-  const hint = timezoneHint();
+  const base = baseLocation();
 
   try {
     const cached = sessionStorage.getItem(GEO_KEY);
     if (cached) {
       const loc = JSON.parse(cached);
       if (loc?.country || loc?.city) {
-        return { ...loc, timezone: loc.timezone || hint.timezone };
+        return {
+          country: loc.country || base.country,
+          city: loc.city || base.city,
+          countryCode: loc.countryCode || base.countryCode,
+          timezone: loc.timezone || base.timezone,
+        };
       }
     }
   } catch {
     /* ignore */
   }
 
+  let country = base.country;
+  let city = base.city;
+  let countryCode = base.countryCode;
+
+  // Prefer Cloudflare first (rarely blocked), then fill city from others
+  try {
+    const cf = await fromCloudflareTrace();
+    if (cf.country) country = cf.country;
+    if (cf.countryCode) countryCode = cf.countryCode;
+  } catch {
+    /* adblock / offline */
+  }
+
   const settled = await Promise.allSettled([
-    fromCloudflareTrace(),
     (async () => {
-      const data = await fetchGeoJson('https://ipwho.is/');
+      const data = await fetchGeoJson('https://ipwho.is/', 1800);
       if (data?.success === false) throw new Error('ipwho');
       return normalizeLoc(data.country, data.city, data.country_code);
     })(),
     (async () => {
-      const data = await fetchGeoJson('https://get.geojs.io/v1/ip/geo.json');
+      const data = await fetchGeoJson('https://get.geojs.io/v1/ip/geo.json', 1800);
       return normalizeLoc(data.country, data.city, data.country_code);
     })(),
-    (async () => {
-      const data = await fetchGeoJson('https://api.country.is/');
-      const code = data.country || '';
-      return normalizeLoc(countryNameFromCode(code), '', code);
-    })(),
   ]);
-
-  let country = '';
-  let city = '';
-  let countryCode = '';
 
   for (const result of settled) {
     if (result.status !== 'fulfilled') continue;
     const loc = result.value;
-    if (!country && loc.country) country = loc.country;
-    if (!city && loc.city) city = loc.city;
-    if (!countryCode && loc.countryCode) countryCode = loc.countryCode;
+    if (loc.country) country = loc.country;
+    if (loc.city) city = loc.city;
+    if (loc.countryCode) countryCode = loc.countryCode;
   }
 
-  // Soft fallback: timezone city when IP city missing (e.g. Asia/Karachi → Karachi)
-  if (!city && hint.city) city = hint.city;
   if (!country && countryCode) country = countryNameFromCode(countryCode);
+  if (!city && base.city) city = base.city;
 
   const loc = {
     ...normalizeLoc(country, city, countryCode),
-    timezone: hint.timezone,
+    timezone: base.timezone,
   };
 
-  if (loc.country || loc.city) {
-    try {
-      sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
-    } catch {
-      /* private mode */
-    }
+  try {
+    sessionStorage.setItem(GEO_KEY, JSON.stringify(loc));
+  } catch {
+    /* private mode */
   }
 
   return loc;
@@ -197,7 +231,13 @@ export async function trackPageview(path = location.pathname) {
     if (Date.now() - last < 30_000) return;
     sessionStorage.setItem(key, String(Date.now()));
 
-    const loc = await resolveLocation();
+    // Offline baseline first — desktop with adblock still gets city/country
+    let loc = baseLocation();
+    try {
+      loc = await resolveLocation();
+    } catch {
+      /* keep baseline */
+    }
 
     await addDoc(collection(db, 'pageviews'), {
       path: path.slice(0, 180) || '/',
