@@ -50,14 +50,30 @@ export const COMBO = {
   nearMissWindow: 0.45, // lane change within this window before a pass = near miss
 };
 
-/* Zones recolor the world every N meters — variety on long runs */
+/* Zones recolor the world — first four cycle by distance, then CORE locks in */
 export const ZONES = [
   { name: 'LIME SECTOR', color: '#b8ff3c' },
   { name: 'CYAN SECTOR', color: '#37e6ff' },
   { name: 'MAGENTA SECTOR', color: '#ff3ec8' },
   { name: 'AMBER SECTOR', color: '#ffb03a' },
+  { name: 'CORE SECTOR', color: '#e9e9ec', final: true },
 ];
-export const ZONE_LENGTH = 420; // meters per zone
+export const ZONE_LENGTH = 420; // meters per sector before CORE
+/** After this many meters the run locks into CORE SECTOR (final) */
+export const FINAL_AT = ZONE_LENGTH * 4; // past Lime→Cyan→Magenta→Amber
+
+/** Clear CORE with enough score + data bits to win the run */
+export const WIN = {
+  score: 40000,
+  coins: 75,
+};
+
+/** Watchable bot walkthrough — faster scoring so a clear finishes in a few minutes */
+export const DEMO = {
+  speedMult: 2.15,
+  scoreMult: 9,
+  magnetBoost: true,
+};
 
 export const COLORS = {
   bg: 0x050508,

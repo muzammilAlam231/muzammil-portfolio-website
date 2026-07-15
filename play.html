@@ -38,6 +38,8 @@
     </div>
     <!-- active power-up chips with draining timer bars -->
     <div class="powerups" id="hud-powerups"></div>
+    <p class="demo-banner mono hidden" id="demo-banner">WALKTHROUGH · BOT PILOT · TAP TO SKIP</p>
+    <p class="obj-chip mono hidden" id="obj-chip"></p>
     <p class="zone-toast mono" id="zone-toast"></p>
     <p class="float-msg mono" id="float-msg"></p>
   </div>
@@ -46,7 +48,7 @@
   <div id="screen-start" class="overlay">
     <p class="ov-eyebrow mono">MUZAMMIL.DEV PRESENTS</p>
     <h1 class="ov-title display">GRID<span class="acc">RUN</span></h1>
-    <p class="ov-sub mono">ENDLESS RUN THROUGH THE DATA HIGHWAY</p>
+    <p class="ov-sub mono">CLEAR CORE SECTOR · 40,000 PTS · 75 DATA BITS</p>
     <div class="controls-hint mono" id="controls-hint">
       <span><b>◄ ►</b> / A·D — LANES</span>
       <span><b>▲</b> / SPACE — JUMP</span>
@@ -55,6 +57,9 @@
     </div>
     <p class="ov-cta mono blink" id="start-cta">PRESS ANY KEY / TAP TO RUN</p>
     <p class="ov-best mono" id="start-best"></p>
+    <div class="over-actions start-actions">
+      <button id="btn-demo" class="ov-btn ghost mono" type="button">▷ WATCH WALKTHROUGH</button>
+    </div>
     <a class="ov-back mono" href="./">← BACK TO PORTFOLIO</a>
   </div>
 
@@ -78,6 +83,24 @@
     <div class="leaderboard mono" id="leaderboard"></div>
     <div class="over-actions">
       <button id="btn-again" class="ov-btn mono">▶ PLAY AGAIN <span class="dim">(R)</span></button>
+      <button id="btn-demo-over" class="ov-btn ghost mono" type="button">▷ WATCH WALKTHROUGH</button>
+      <a class="ov-btn ghost mono" href="./">← BACK TO PORTFOLIO</a>
+    </div>
+  </div>
+
+  <!-- ══════════ WIN ══════════ -->
+  <div id="screen-win" class="overlay hidden">
+    <p class="ov-eyebrow mono">CORE BREACHED</p>
+    <h2 class="ov-title-sm display">RUN<span class="acc">CLEARED</span></h2>
+    <p class="ov-sub mono" id="win-sub">40,000 PTS · 75 DATA BITS · CORE SECTOR</p>
+    <div class="over-stats mono">
+      <div><span class="dim">SCORE</span><b id="win-score">0</b></div>
+      <div><span class="dim">DISTANCE</span><b id="win-dist">0M</b></div>
+      <div><span class="dim">DATA BITS</span><b id="win-coins">0</b></div>
+    </div>
+    <div class="over-actions">
+      <button id="btn-win-again" class="ov-btn mono" type="button">▶ RUN AGAIN <span class="dim">(R)</span></button>
+      <button id="btn-demo-win" class="ov-btn ghost mono" type="button">▷ WATCH WALKTHROUGH</button>
       <a class="ov-btn ghost mono" href="./">← BACK TO PORTFOLIO</a>
     </div>
   </div>

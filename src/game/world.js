@@ -3,7 +3,7 @@
    volumetric beams, horizon ring, speed tunnel, decor chunks.
    ════════════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
-import { COLORS, ZONES, ZONE_LENGTH, LOW, LANES } from './config.js';
+import { COLORS, ZONES, ZONE_LENGTH, FINAL_AT, LOW, LANES } from './config.js';
 import { holoMat, neonMat, streakMat, tickMaterials, coinCoreMat, coinRingMat, dangerFieldMat, glowTexture } from './materials.js';
 
 const CHUNK_LEN = 30;
@@ -382,7 +382,8 @@ export function updateWorld(dt, dz, distance, speed = 14) {
     if (c.position.z > CHUNK_LEN / 2) c.position.z -= CHUNKS * CHUNK_LEN;
   }
 
-  const zi = Math.floor(distance / ZONE_LENGTH) % ZONES.length;
+  const unlocked = Math.floor(distance / ZONE_LENGTH);
+  const zi = distance >= FINAL_AT ? ZONES.length - 1 : Math.min(unlocked, ZONES.length - 2);
   if (zi !== world.zoneIndex) {
     world.zoneIndex = zi;
     world.accentTarget.set(ZONES[zi].color);

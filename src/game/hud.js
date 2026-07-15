@@ -3,6 +3,7 @@
    zone toasts, floating messages, screens and the local top-5
    leaderboard (localStorage only, no backend).
    ════════════════════════════════════════════════════════════════ */
+import { WIN } from './config.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -18,15 +19,22 @@ export function initHud() {
   els.powerups = $('#hud-powerups');
   els.zoneToast = $('#zone-toast');
   els.floatMsg = $('#float-msg');
+  els.demoBanner = $('#demo-banner');
+  els.objChip = $('#obj-chip');
   els.start = $('#screen-start');
   els.pause = $('#screen-pause');
   els.over = $('#screen-over');
+  els.win = $('#screen-win');
   els.startBest = $('#start-best');
   els.overScore = $('#over-score');
   els.overDist = $('#over-dist');
   els.overCoins = $('#over-coins');
   els.overNewBest = $('#over-newbest');
   els.leaderboard = $('#leaderboard');
+  els.winScore = $('#win-score');
+  els.winDist = $('#win-dist');
+  els.winCoins = $('#win-coins');
+  els.winSub = $('#win-sub');
   els.btnMute = $('#btn-mute');
 
   const best = loadScores()[0];
@@ -37,17 +45,39 @@ export function showScreen(name) {
   els.start.classList.toggle('hidden', name !== 'start');
   els.pause.classList.toggle('hidden', name !== 'pause');
   els.over.classList.toggle('hidden', name !== 'over');
+  els.win?.classList.toggle('hidden', name !== 'win');
   els.hud.classList.toggle('hidden', name === 'start');
+  if (name !== 'run' && name !== 'demo') {
+    els.demoBanner?.classList.add('hidden');
+    els.objChip?.classList.add('hidden');
+  }
+}
+
+export function setDemoBanner(on) {
+  els.demoBanner?.classList.toggle('hidden', !on);
 }
 
 /* ── live numbers (cheap textContent writes each frame) ── */
-export function updateHud(run) {
+export function updateHud(run, { inFinal = false, demo = false } = {}) {
   els.score.textContent = Math.floor(run.score).toLocaleString();
   els.dist.textContent = Math.floor(run.dist);
   els.coins.textContent = run.coins;
   const mult = run.multiplier;
   els.combo.textContent = mult > 1.01 ? `COMBO ×${mult.toFixed(1)}` : '';
   els.score.classList.toggle('is-hot', mult > 1.4);
+
+  if (els.objChip) {
+    if (inFinal) {
+      const sOk = run.score >= WIN.score;
+      const cOk = run.coins >= WIN.coins;
+      els.objChip.classList.remove('hidden');
+      els.objChip.textContent = `CORE CLEAR · ${Math.min(Math.floor(run.score), WIN.score).toLocaleString()}/${WIN.score.toLocaleString()} PTS · ◈${Math.min(run.coins, WIN.coins)}/${WIN.coins}${sOk && cOk ? ' · READY' : ''}`;
+      els.objChip.classList.toggle('is-ready', sOk && cOk);
+    } else {
+      els.objChip.classList.add('hidden');
+    }
+  }
+  setDemoBanner(demo);
 }
 
 /* ── power-up chips ── */
@@ -102,19 +132,22 @@ function loadScores() {
   }
 }
 
-export function showGameOver(run) {
-  els.overScore.textContent = Math.floor(run.score).toLocaleString();
-  els.overDist.textContent = `${Math.floor(run.dist)}M`;
-  els.overCoins.textContent = run.coins;
-
+function pushScore(run) {
   const scores = loadScores();
   const entry = { s: Math.floor(run.score), d: Math.floor(run.dist), c: run.coins, t: Date.now() };
   scores.push(entry);
   scores.sort((a, b) => b.s - a.s);
   const top = scores.slice(0, 5);
   localStorage.setItem(SCORES_KEY, JSON.stringify(top));
+  return { top, entry, isBest: top[0] === entry };
+}
 
-  const isBest = top[0] === entry;
+export function showGameOver(run) {
+  els.overScore.textContent = Math.floor(run.score).toLocaleString();
+  els.overDist.textContent = `${Math.floor(run.dist)}M`;
+  els.overCoins.textContent = run.coins;
+
+  const { top, entry, isBest } = pushScore(run);
   els.overNewBest.classList.toggle('hidden', !isBest);
 
   els.leaderboard.innerHTML = top
@@ -125,4 +158,17 @@ export function showGameOver(run) {
     .join('');
 
   showScreen('over');
+}
+
+export function showWin(run, { demo = false } = {}) {
+  if (els.winScore) els.winScore.textContent = Math.floor(run.score).toLocaleString();
+  if (els.winDist) els.winDist.textContent = `${Math.floor(run.dist)}M`;
+  if (els.winCoins) els.winCoins.textContent = run.coins;
+  if (els.winSub) {
+    els.winSub.textContent = demo
+      ? 'WALKTHROUGH COMPLETE · CORE SECTOR CLEARED'
+      : `${WIN.score.toLocaleString()} PTS · ${WIN.coins} DATA BITS · CORE SECTOR`;
+  }
+  if (!demo) pushScore(run);
+  showScreen('win');
 }

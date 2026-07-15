@@ -1,19 +1,17 @@
 /* ════════════════════════════════════════════════════════════════
    GRID RUN — main game loop + state machine.
 
-   States: start (attract mode) → run → over  (+ pause)
+   States: start | run | demo | pause | over | win
 
    CORE LOOP (each frame while running):
    1. speed ramps with distance → dz = meters travelled this frame
    2. world treadmill + spawner advance by dz
-   3. player controller integrates (lanes / jump / slide)
+   3. player controller integrates (lanes / jump / slide) — or bot
    4. physics resolves hits, coins, power-ups, near-misses
    5. scoring: distance pts × combo multiplier × (×2 power-up)
-   6. camera/effects/HUD read the results
-
-   Difficulty pacing lives in config.js + spawner.js templates.
+   6. CORE SECTOR + score/coins gates → win
    ════════════════════════════════════════════════════════════════ */
-import { RUN, SPAWN, POWERUPS, COMBO, REDUCED, COLORS } from './config.js';
+import { RUN, SPAWN, POWERUPS, COMBO, REDUCED, COLORS, WIN, DEMO, ZONES } from './config.js';
 import { initEngine, engine, updateCamera, shake, slowMo, setBloomPulse } from './engine.js';
 import { initWorld, updateWorld, resetWorld, world } from './world.js';
 import { initEffects, updateEffects, burstFX, setTrailColor, shockwave } from './effects.js';
@@ -23,11 +21,14 @@ import { checkCollisions } from './physics.js';
 import { initInput, on } from './input.js';
 import { unlockAudio, toggleMute, isMuted, sfx, startBgm, updateBgm, pauseBgm, resumeBgm, stopBgm } from './audio.js';
 import { setAberration, flashScreen } from './postfx.js';
+import { updateBot, resetBot } from './bot.js';
 import * as hud from './hud.js';
 import '../styles/game.css';
 import { trackPageview } from '../js/analytics.js';
 
-let state = 'start'; // start | run | pause | over
+let state = 'start'; // start | run | demo | pause | over | win
+let demo = false;
+let pausedFrom = 'run';
 
 const run = {
   dist: 0,
@@ -45,6 +46,14 @@ const run = {
   },
 };
 
+function inFinalSector() {
+  return !!ZONES[world.zoneIndex]?.final;
+}
+
+function canWin() {
+  return inFinalSector() && run.score >= WIN.score && run.coins >= WIN.coins;
+}
+
 /* ── boot ── */
 initEngine();
 initWorld(engine.scene);
@@ -58,63 +67,99 @@ hud.showScreen('start');
 trackPageview('/play.html');
 
 world.onZoneChange = (zone) => {
-  if (state !== 'run') return;
+  if (state !== 'run' && state !== 'demo') return;
   hud.zoneToast(zone.name);
   sfx.zone();
   setTrailColor(world.accent);
+  if (zone.final) hud.floatMsg('CORE SECTOR — CLEAR THE OBJECTIVE');
 };
 
-/* ── input wiring ──
-   inputGrace: the tap/keypress that starts or resumes the game must
-   not ALSO steer the player one frame later (touchend fires after
-   pointerdown), so actions are ignored for a beat after transitions */
+/* ── input wiring ── */
 let inputGrace = 0;
-const ok = () => state === 'run' && performance.now() > inputGrace;
+const ok = () => state === 'run' && !demo && performance.now() > inputGrace;
 on('left', () => ok() && moveLane(-1, run.runTime));
 on('right', () => ok() && moveLane(1, run.runTime));
 on('jump', () => ok() && tryJump());
 on('slide', () => ok() && trySlide());
-on('pause', togglePause);
+on('pause', () => {
+  if (demo) {
+    stopDemoToMenu();
+    return;
+  }
+  togglePause();
+});
 on('any', () => {
   unlockAudio();
-  if (state === 'start') startRun();
+  if (state === 'start') startRun(false);
+  else if (state === 'demo') stopDemoToMenu();
 });
-// mouse users: click the start screen to begin
+
 document.getElementById('screen-start').addEventListener('pointerdown', (e) => {
-  if (e.target.closest('a')) return;
+  if (e.target.closest('a') || e.target.closest('button')) return;
   unlockAudio();
-  if (state === 'start') startRun();
+  if (state === 'start') startRun(false);
 });
+
+function wireDemoBtn(id) {
+  document.getElementById(id)?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    unlockAudio();
+    startRun(true);
+  });
+}
+wireDemoBtn('btn-demo');
+wireDemoBtn('btn-demo-over');
+wireDemoBtn('btn-demo-win');
+
 addEventListener('keydown', (e) => {
   if (e.code === 'KeyM') hud.setMuteLabel(toggleMute());
-  if (e.code === 'KeyR' && state === 'over') restart();
+  if (e.code === 'KeyR' && (state === 'over' || state === 'win')) restart();
+  if (e.code === 'Escape' && state === 'demo') stopDemoToMenu();
 });
 document.getElementById('btn-mute').addEventListener('click', () => hud.setMuteLabel(toggleMute()));
-document.getElementById('btn-pause').addEventListener('click', togglePause);
-document.getElementById('btn-again').addEventListener('click', restart);
+document.getElementById('btn-pause').addEventListener('click', () => {
+  if (demo) stopDemoToMenu();
+  else togglePause();
+});
+document.getElementById('btn-again')?.addEventListener('click', restart);
+document.getElementById('btn-win-again')?.addEventListener('click', restart);
 document.getElementById('screen-pause').addEventListener('pointerdown', (e) => {
   if (e.target.closest('a')) return;
   togglePause();
 });
+document.getElementById('hud')?.addEventListener('pointerdown', () => {
+  if (state === 'demo') stopDemoToMenu();
+});
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && state === 'run') togglePause();
+  if (document.hidden && (state === 'run' || state === 'demo')) {
+    if (demo) return; // keep demo running in background briefly — still pause for fairness
+    togglePause();
+  }
 });
 
 /* ── state transitions ── */
-function startRun() {
+function startRun(asDemo = false) {
+  demo = asDemo;
   resetRun();
-  state = 'run';
+  state = demo ? 'demo' : 'run';
   inputGrace = performance.now() + 280;
   hud.showScreen('run');
+  hud.setDemoBanner(demo);
   startBgm();
+  if (demo) hud.floatMsg('BOT PILOT ONLINE');
 }
 
 function restart() {
+  startRun(false);
+}
+
+function stopDemoToMenu() {
+  demo = false;
+  stopBgm();
   resetRun();
-  state = 'run';
-  inputGrace = performance.now() + 280;
-  hud.showScreen('run');
-  startBgm();
+  state = 'start';
+  hud.setDemoBanner(false);
+  hud.showScreen('start');
 }
 
 function resetRun() {
@@ -132,39 +177,62 @@ function resetRun() {
   resetPlayer();
   resetWorld();
   resetSpawner();
+  resetBot();
   hud.clearPowerupChips();
-  hud.updateHud(run);
+  hud.updateHud(run, { inFinal: false, demo: false });
 }
 
 function togglePause() {
-  if (state === 'run') {
+  if (state === 'run' || state === 'demo') {
+    pausedFrom = state;
     state = 'pause';
     hud.showScreen('pause');
     pauseBgm();
   } else if (state === 'pause') {
-    state = 'run';
+    state = pausedFrom;
     inputGrace = performance.now() + 280;
     hud.showScreen('run');
+    hud.setDemoBanner(demo);
     resumeBgm();
   }
 }
 
 function die() {
-  if (state !== 'run') return;
+  if (state !== 'run' && state !== 'demo') return;
+  const wasDemo = demo;
   state = 'over';
+  demo = false;
   stopBgm();
   killPlayer();
   shake(1.3);
   slowMo(0.22, 0.55);
-  // let the tumble play out, then show the summary
-  setTimeout(() => hud.showGameOver(run), REDUCED ? 200 : 950);
+  setTimeout(() => {
+    if (wasDemo) {
+      // Keep the walkthrough going after a bot crash
+      startRun(true);
+      return;
+    }
+    hud.showGameOver(run);
+  }, REDUCED ? 200 : 950);
+}
+
+function winRun() {
+  if (state !== 'run' && state !== 'demo') return;
+  const wasDemo = demo;
+  state = 'win';
+  demo = false;
+  stopBgm();
+  sfx.zone();
+  flashScreen(0.35);
+  hud.floatMsg('CORE CLEARED');
+  setTimeout(() => hud.showWin(run, { demo: wasDemo }), REDUCED ? 200 : 700);
 }
 
 /* ── collision event handlers ── */
 const events = {
   onHit(o) {
     if (run.power.shield > 0) {
-      o.ghost = true; // shield eats this obstacle
+      o.ghost = true;
       shieldSave();
       shake(0.5);
       hud.floatMsg('SHIELD ABSORBED IT');
@@ -217,20 +285,24 @@ engine.onFrame = (dt) => {
     return;
   }
 
-  /* run + over states share the treadmill (the world keeps rushing
-     past the tumbling bot for a beat after death) */
-  const alive = state === 'run';
-  run.speed = Math.min(RUN.baseSpeed + run.dist * RUN.accelPerMeter, RUN.maxSpeed);
-  const dz = (alive ? run.speed : run.speed * 0.3) * dt;
+  const playing = state === 'run' || state === 'demo';
+  const speedMult = demo ? DEMO.speedMult : 1;
+  const scoreMult = demo ? DEMO.scoreMult : 1;
 
-  if (alive) {
+  run.speed = Math.min(RUN.baseSpeed + run.dist * RUN.accelPerMeter, RUN.maxSpeed) * speedMult;
+  const dz = (playing ? run.speed : run.speed * 0.3) * dt;
+
+  if (playing) {
     engine.attractMode = false;
     run.runTime += dt;
     run.dist += dz;
-    run.score += dz * run.multiplier; // distance points
-    engine.fovKick = (run.speed - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed);
+    const coreBonus = inFinalSector() ? 1.35 : 1;
+    run.score += dz * run.multiplier * scoreMult * coreBonus;
 
-    /* combo decay */
+    if (demo && DEMO.magnetBoost) {
+      run.power.magnet = Math.max(run.power.magnet, 1.5);
+    }
+
     if (run.comboT > 0) {
       run.comboT -= dt;
       if (run.comboT <= 0) {
@@ -239,34 +311,36 @@ engine.onFrame = (dt) => {
       }
     }
 
-    /* power-up timers */
     for (const kind in run.power) {
       if (run.power[kind] > 0) {
         run.power[kind] -= dt;
         hud.setPowerupChip(kind, POWERUPS[kind], run.power[kind]);
       }
     }
+
+    engine.fovKick = Math.min(1, (run.speed / speedMult - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed));
   }
 
   const tier = Math.min(Math.floor(run.dist / SPAWN.tierEvery), 5);
-  updateWorld(dt, dz, run.dist, run.speed);
+  updateWorld(dt, dz, run.dist, run.speed / speedMult);
   updateSpawner(dz, dt, run.dist, tier, player, run.power.magnet > 0);
-  updatePlayer(dt, run.speed);
 
-  if (alive) {
+  if (playing && demo) updateBot(dt, run.runTime);
+  updatePlayer(dt, run.speed / speedMult);
+
+  if (playing) {
     checkCollisions(player, run.runTime, events);
-    hud.updateHud(run);
+    hud.updateHud(run, { inFinal: inFinalSector(), demo });
     updateBgm(run.score);
+    updatePowerVisuals(run.power);
+
+    if (canWin()) winRun();
   }
 
-  const speed01 = (run.speed - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed);
+  const speed01 = Math.min(1, (run.speed / speedMult - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed));
   setAberration(speed01);
   setBloomPulse(speed01);
 
-  if (alive) {
-    updatePowerVisuals(run.power);
-  }
-
-  updateEffects(dt, dz, run.speed);
-  updateCamera(dt, player, run.speed);
+  updateEffects(dt, dz, run.speed / speedMult);
+  updateCamera(dt, player, run.speed / speedMult);
 };
