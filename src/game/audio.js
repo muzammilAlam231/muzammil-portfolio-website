@@ -1,15 +1,83 @@
 /* ════════════════════════════════════════════════════════════════
-   AUDIO — zero-asset WebAudio synth SFX + mute toggle.
+   AUDIO — WebAudio synth SFX + score-tier BGM + mute toggle.
 
-   Every sound is generated (oscillators + noise), so the game ships
-   no audio files at all. If you want background music later, drop a
-   loop into /public/audio and wire it in initAudio() — royalty-free
-   sources: Pixabay Music, FreePD, incompetech (Kevin MacLeod).
+   BGM files live in /public/audio and switch by score:
+     < 10000  → bgm-till-10000.mp3  (loops)
+     < 15000  → bgm-till-15000.mp3  (loops)
+     ≥ 15000  → bgm-after-15000.mp3 (loops)
    ════════════════════════════════════════════════════════════════ */
+
+const BGM_VOL = 0.38;
+const SFX_MASTER = 0.5;
+
+const BGM_TRACKS = [
+  { maxScore: 10000, src: './audio/bgm-till-10000.mp3' },
+  { maxScore: 15000, src: './audio/bgm-till-15000.mp3' },
+  { maxScore: Infinity, src: './audio/bgm-after-15000.mp3' },
+];
 
 let ctx = null;
 let master = null;
 let muted = localStorage.getItem('gridrun-muted') === '1';
+
+/** @type {HTMLAudioElement[]} */
+const bgmPool = BGM_TRACKS.map((t) => {
+  const a = new Audio(t.src);
+  a.loop = true;
+  a.preload = 'auto';
+  a.volume = 0;
+  return a;
+});
+
+let bgmIndex = -1;
+let bgmPlaying = false;
+
+function trackForScore(score) {
+  const s = Math.max(0, Number(score) || 0);
+  for (let i = 0; i < BGM_TRACKS.length; i++) {
+    if (s < BGM_TRACKS[i].maxScore) return i;
+  }
+  return BGM_TRACKS.length - 1;
+}
+
+function applyBgmVolume() {
+  bgmPool.forEach((a, i) => {
+    a.volume = !muted && bgmPlaying && i === bgmIndex ? BGM_VOL : 0;
+  });
+}
+
+async function playTrack(index, { restart = false } = {}) {
+  if (index < 0 || index >= bgmPool.length) return;
+  const next = bgmPool[index];
+  if (bgmIndex === index && !restart) {
+    applyBgmVolume();
+    if (next.paused && bgmPlaying && !muted) {
+      try {
+        await next.play();
+      } catch {
+        /* autoplay blocked until gesture */
+      }
+    }
+    return;
+  }
+
+  if (bgmIndex >= 0 && bgmIndex !== index) {
+    const prev = bgmPool[bgmIndex];
+    prev.pause();
+    prev.currentTime = 0;
+    prev.volume = 0;
+  }
+
+  bgmIndex = index;
+  if (restart) next.currentTime = 0;
+  applyBgmVolume();
+  if (!bgmPlaying || muted) return;
+  try {
+    await next.play();
+  } catch {
+    /* ignore */
+  }
+}
 
 /** must be called from a user gesture (browser autoplay policy) */
 export function unlockAudio() {
@@ -19,14 +87,56 @@ export function unlockAudio() {
   }
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   master = ctx.createGain();
-  master.gain.value = muted ? 0 : 0.5;
+  master.gain.value = muted ? 0 : SFX_MASTER;
   master.connect(ctx.destination);
+
+  bgmPool.forEach((a) => {
+    a.load();
+  });
+}
+
+/** Start (or restart) BGM for a new run at score 0 */
+export function startBgm() {
+  bgmPlaying = true;
+  playTrack(trackForScore(0), { restart: true });
+}
+
+/** Keep the correct looping track for the current score */
+export function updateBgm(score) {
+  if (!bgmPlaying) return;
+  playTrack(trackForScore(score));
+}
+
+export function pauseBgm() {
+  if (bgmIndex >= 0) bgmPool[bgmIndex].pause();
+}
+
+export function resumeBgm() {
+  if (!bgmPlaying || muted || bgmIndex < 0) return;
+  applyBgmVolume();
+  bgmPool[bgmIndex].play().catch(() => {});
+}
+
+export function stopBgm() {
+  bgmPlaying = false;
+  bgmPool.forEach((a) => {
+    a.pause();
+    a.currentTime = 0;
+    a.volume = 0;
+  });
+  bgmIndex = -1;
 }
 
 export function toggleMute() {
   muted = !muted;
   localStorage.setItem('gridrun-muted', muted ? '1' : '0');
-  if (master) master.gain.value = muted ? 0 : 0.5;
+  if (master) master.gain.value = muted ? 0 : SFX_MASTER;
+  applyBgmVolume();
+  if (muted) {
+    bgmPool.forEach((a) => a.pause());
+  } else if (bgmPlaying && bgmIndex >= 0) {
+    bgmPool[bgmIndex].play().catch(() => {});
+  }
   return muted;
 }
 export const isMuted = () => muted;

@@ -21,7 +21,7 @@ import { initPlayer, updatePlayer, resetPlayer, player, moveLane, tryJump, trySl
 import { initSpawner, resetSpawner, updateSpawner } from './spawner.js';
 import { checkCollisions } from './physics.js';
 import { initInput, on } from './input.js';
-import { unlockAudio, toggleMute, isMuted, sfx } from './audio.js';
+import { unlockAudio, toggleMute, isMuted, sfx, startBgm, updateBgm, pauseBgm, resumeBgm, stopBgm } from './audio.js';
 import { setAberration, flashScreen } from './postfx.js';
 import * as hud from './hud.js';
 import '../styles/game.css';
@@ -106,6 +106,7 @@ function startRun() {
   state = 'run';
   inputGrace = performance.now() + 280;
   hud.showScreen('run');
+  startBgm();
 }
 
 function restart() {
@@ -113,6 +114,7 @@ function restart() {
   state = 'run';
   inputGrace = performance.now() + 280;
   hud.showScreen('run');
+  startBgm();
 }
 
 function resetRun() {
@@ -138,16 +140,19 @@ function togglePause() {
   if (state === 'run') {
     state = 'pause';
     hud.showScreen('pause');
+    pauseBgm();
   } else if (state === 'pause') {
     state = 'run';
     inputGrace = performance.now() + 280;
     hud.showScreen('run');
+    resumeBgm();
   }
 }
 
 function die() {
   if (state !== 'run') return;
   state = 'over';
+  stopBgm();
   killPlayer();
   shake(1.3);
   slowMo(0.22, 0.55);
@@ -251,6 +256,7 @@ engine.onFrame = (dt) => {
   if (alive) {
     checkCollisions(player, run.runTime, events);
     hud.updateHud(run);
+    updateBgm(run.score);
   }
 
   const speed01 = (run.speed - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed);
