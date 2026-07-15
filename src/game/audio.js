@@ -1,19 +1,20 @@
 /* ════════════════════════════════════════════════════════════════
-   AUDIO — WebAudio synth SFX + score-tier BGM + mute toggle.
+   AUDIO — WebAudio synth SFX + zone-tier BGM + mute toggle.
 
-   BGM files live in /public/audio and switch by score:
-     < 10000  → bgm-till-10000.mp3  (loops)
-     < 15000  → bgm-till-15000.mp3  (loops)
-     ≥ 15000  → bgm-after-15000.mp3 (loops)
+   BGM files live in /public/audio and follow world sectors:
+     LIME (zone 0)     → bgm-till-10000.mp3  (loops)
+     CYAN (zone 1)     → bgm-till-15000.mp3  (loops)
+     MAGENTA+ (zone 2+)→ bgm-after-15000.mp3 (loops)
    ════════════════════════════════════════════════════════════════ */
 
 const BGM_VOL = 0.38;
 const SFX_MASTER = 0.5;
 
-const BGM_TRACKS = [
-  { maxScore: 10000, src: './audio/bgm-till-10000.mp3' },
-  { maxScore: 15000, src: './audio/bgm-till-15000.mp3' },
-  { maxScore: Infinity, src: './audio/bgm-after-15000.mp3' },
+/** Index = BGM tier; mapped from zone via trackForZone() */
+const BGM_SRCS = [
+  './audio/bgm-till-10000.mp3',
+  './audio/bgm-till-15000.mp3',
+  './audio/bgm-after-15000.mp3',
 ];
 
 let ctx = null;
@@ -21,8 +22,8 @@ let master = null;
 let muted = localStorage.getItem('gridrun-muted') === '1';
 
 /** @type {HTMLAudioElement[]} */
-const bgmPool = BGM_TRACKS.map((t) => {
-  const a = new Audio(t.src);
+const bgmPool = BGM_SRCS.map((src) => {
+  const a = new Audio(src);
   a.loop = true;
   a.preload = 'auto';
   a.volume = 0;
@@ -32,12 +33,12 @@ const bgmPool = BGM_TRACKS.map((t) => {
 let bgmIndex = -1;
 let bgmPlaying = false;
 
-function trackForScore(score) {
-  const s = Math.max(0, Number(score) || 0);
-  for (let i = 0; i < BGM_TRACKS.length; i++) {
-    if (s < BGM_TRACKS[i].maxScore) return i;
-  }
-  return BGM_TRACKS.length - 1;
+/** Lime=0, Cyan=1, Magenta/Amber (and later)=2 */
+function trackForZone(zoneIndex) {
+  const z = Math.max(0, zoneIndex | 0);
+  if (z <= 0) return 0;
+  if (z === 1) return 1;
+  return 2;
 }
 
 function applyBgmVolume() {
@@ -95,16 +96,16 @@ export function unlockAudio() {
   });
 }
 
-/** Start (or restart) BGM for a new run at score 0 */
+/** Start (or restart) BGM for a new run in Lime sector */
 export function startBgm() {
   bgmPlaying = true;
-  playTrack(trackForScore(0), { restart: true });
+  playTrack(trackForZone(0), { restart: true });
 }
 
-/** Keep the correct looping track for the current score */
-export function updateBgm(score) {
+/** Switch looping track when the world sector changes */
+export function updateBgm(zoneIndex) {
   if (!bgmPlaying) return;
-  playTrack(trackForScore(score));
+  playTrack(trackForZone(zoneIndex));
 }
 
 export function pauseBgm() {

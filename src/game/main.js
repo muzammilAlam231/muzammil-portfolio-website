@@ -62,6 +62,7 @@ world.onZoneChange = (zone) => {
   hud.zoneToast(zone.name);
   sfx.zone();
   setTrailColor(world.accent);
+  updateBgm(world.zoneIndex);
 };
 
 /* ── input wiring ──
@@ -256,7 +257,6 @@ engine.onFrame = (dt) => {
   if (alive) {
     checkCollisions(player, run.runTime, events);
     hud.updateHud(run);
-    updateBgm(run.score);
   }
 
   const speed01 = (run.speed - RUN.baseSpeed) / (RUN.maxSpeed - RUN.baseSpeed);
