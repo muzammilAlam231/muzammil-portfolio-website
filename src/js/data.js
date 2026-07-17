@@ -17,7 +17,7 @@ export const skillGroups = [
   },
   {
     title: 'Cloud / AWS',
-    skills: ['EC2', 'Lambda', 'S3', 'ECS · Fargate', 'CloudFront', 'RDS', 'AWS CDK'],
+    skills: ['EC2', 'Security Groups', 'Linux servers', 'Nginx', 'SSH · deploy', 'S3 basics'],
   },
   {
     title: 'Data & Tools',
@@ -88,7 +88,7 @@ export const experience = [
     date: '2024 — NOW',
     role: 'Freelance Full-Stack Developer',
     company: 'Independent · Remote, worldwide',
-    desc: 'Building complete products for startups and agencies — React frontends, Node.js APIs and the AWS infrastructure underneath, delivered end to end.',
+    desc: 'Building complete products for startups and agencies — React frontends, Node.js APIs, and EC2-hosted apps when a server is needed, delivered end to end.',
   },
   {
     date: '2022 — 2024',
@@ -110,20 +110,18 @@ export const experience = [
   },
 ];
 
-/* ── 05 · CLOUD ── PLACEHOLDER: real AWS work, no badge claims ──
-   Honest proof-of-work list — swap in the things you've actually
-   run in production.                                             */
+/* ── 05 · CLOUD ── Honest scope: basics + EC2 experience ── */
 export const cloudHighlights = [
-  'Serverless APIs — Lambda · API Gateway',
-  'Containers — ECS · Fargate deployments',
-  'Delivery — S3 · CloudFront pipelines',
-  'Data — RDS · DynamoDB in production',
+  'EC2 — instances provisioned and configured',
+  'Networking — security groups · ports · SSH',
+  'Deploy — apps live on Linux servers',
+  'Storage — S3 for static files when needed',
 ];
 
 export const cloudStats = [
-  { num: '12+', label: 'AWS services in production' },
-  { num: '99.9%', label: 'Uptime maintained' },
-  { num: '-40%', label: 'Client infra costs cut' },
+  { num: 'EC2', label: 'Servers deployed by hand' },
+  { num: 'Basics', label: 'Cloud fundamentals solid' },
+  { num: 'Growing', label: 'Going deeper into AWS' },
 ];
 
 /* ── 06 · CONTACT ── PLACEHOLDER links ── */

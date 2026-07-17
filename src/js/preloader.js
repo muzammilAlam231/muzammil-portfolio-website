@@ -11,7 +11,7 @@
 import gsap from 'gsap';
 import { ENV, $, scramble } from './utils.js';
 
-const WORDS = ['ASSEMBLING SYSTEM', 'FRONTEND', 'BACKEND', 'CLOUD / AWS', 'END TO END'];
+const WORDS = ['ASSEMBLING SYSTEM', 'FRONTEND', 'BACKEND', 'CLOUD BASICS', 'END TO END'];
 
 export function runPreloader() {
   const overlay = $('#preloader');
