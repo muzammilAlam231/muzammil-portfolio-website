@@ -833,7 +833,8 @@
     display: none;
   }
   .nav-links .nav-cta,
-  .nav-links .nav-play {
+  .nav-links .nav-play,
+  .nav-links .skin-toggle {
     display: inline-block;
   }
   .panel-intro .heading.big {

@@ -28,6 +28,12 @@
   color-scheme: dark;
 }
 
+/* CORE skin — unlocked by clearing GRID RUN (toggle on homepage) */
+:root[data-skin='core'] {
+  --accent: #ff3ec8;
+  --accent-soft: rgba(255, 62, 200, 0.35);
+}
+
 *,
 *::before,
 *::after {

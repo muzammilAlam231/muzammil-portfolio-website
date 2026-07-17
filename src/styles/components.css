@@ -153,6 +153,30 @@
   border-color: var(--accent-soft);
 }
 
+/* CORE skin toggle — only injected after GRID RUN unlock */
+.skin-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font: inherit;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+.skin-toggle:hover,
+.skin-toggle.is-on {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+}
+.skin-toggle.is-on {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 /* ── Section index rail (right edge, desktop) ── */
 .rail {
   position: fixed;

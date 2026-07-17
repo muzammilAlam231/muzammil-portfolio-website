@@ -4,6 +4,7 @@
    leaderboard (localStorage only, no backend).
    ════════════════════════════════════════════════════════════════ */
 import { WIN } from './config.js';
+import { unlockCoreSkin } from '../js/skin.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -168,6 +169,16 @@ export function showWin(run, { demo = false } = {}) {
       ? 'WALKTHROUGH COMPLETE · CORE SECTOR CLEARED'
       : `${WIN.score.toLocaleString()} PTS · CORE SECTOR`;
   }
-  if (!demo) pushScore(run);
+  if (!demo) {
+    pushScore(run);
+    unlockCoreSkin();
+  }
+  const unlockEl = document.getElementById('win-unlock');
+  if (unlockEl) {
+    unlockEl.classList.toggle('hidden', demo);
+    unlockEl.textContent = demo
+      ? ''
+      : 'PORTFOLIO SKIN UNLOCKED · TOGGLE “CORE” ON THE HOMEPAGE';
+  }
   showScreen('win');
 }

@@ -263,6 +263,14 @@ export function assemble() {
     .to(uniforms.uFlare, { value: 0, duration: 1.3, ease: 'power3.out' });
 }
 
+/** Re-read --accent from CSS (used when the CORE skin toggles). */
+export function syncAccentFromCss() {
+  if (!uniforms?.uAccent) return;
+  const hex =
+    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#b8ff3c';
+  uniforms.uAccent.value.set(hex);
+}
+
 /** Sustained flare (email hover): target 0..1 */
 export function setFlare(v) {
   if (!ready) return;

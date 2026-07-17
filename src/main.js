@@ -16,11 +16,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initScroll, lenis } from './js/scroll.js';
 import { initCursor } from './js/cursor.js';
 import { runPreloader } from './js/preloader.js';
-import { initThree, assemble } from './js/three/app.js';
+import { initThree, assemble, syncAccentFromCss } from './js/three/app.js';
 import { injectContent, initSections, heroIntro } from './js/sections.js';
 import { initGame } from './js/game.js';
 import { loadWorks } from './js/works.js';
 import { trackPageview } from './js/analytics.js';
+import { initSkinToggle } from './js/skin.js';
 
 async function boot() {
   const works = await loadWorks();
@@ -28,6 +29,8 @@ async function boot() {
   initScroll();
   initCursor();
   initThree();
+  initSkinToggle();
+  window.addEventListener('mma:skin', () => syncAccentFromCss());
   initSections();
   initGame();
 

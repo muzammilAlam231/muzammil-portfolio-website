@@ -17,7 +17,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <script>document.documentElement.classList.add('js');</script>
+  <script>
+    document.documentElement.classList.add('js');
+    /* Apply CORE skin before paint if unlocked + enabled (localStorage). */
+    try {
+      if (localStorage.getItem('mma-core-unlocked') === '1' && localStorage.getItem('mma-skin') === 'core') {
+        document.documentElement.setAttribute('data-skin', 'core');
+      }
+    } catch (e) { /* ignore */ }
+  </script>
 
   <!-- Critical inline CSS: the preloader must cover the page before main CSS/JS arrives -->
   <style>
