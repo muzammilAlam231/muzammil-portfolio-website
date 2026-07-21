@@ -177,6 +177,206 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
+/* Obsidian Luxe UI: smoked glass, fine gold edges, quiet highlights. */
+html[data-skin='core'] .pre-veil {
+  background: #0a0907;
+}
+
+html[data-skin='core'] .nav {
+  background: linear-gradient(to bottom, rgba(5, 5, 5, 0.9), rgba(5, 5, 5, 0));
+  backdrop-filter: blur(6px);
+}
+
+html[data-skin='core'] .nav-logo {
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 28px rgba(215, 183, 113, 0.17);
+}
+
+html[data-skin='core'] .skin-toggle.is-on {
+  color: #f5e7c6;
+  border-color: rgba(215, 183, 113, 0.6);
+  border-radius: 2px;
+  background: linear-gradient(135deg, rgba(215, 183, 113, 0.16), rgba(82, 57, 18, 0.08));
+  box-shadow: inset 0 1px rgba(255, 244, 218, 0.08), 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+html[data-skin='core'] .nav-links .nav-cta {
+  text-shadow: 0 0 16px rgba(215, 183, 113, 0.24);
+}
+
+html[data-skin='core'] .nav-links .nav-play {
+  border-radius: 2px;
+  border-color: rgba(215, 183, 113, 0.22);
+}
+
+html[data-skin='core'] :is(.cursor-dot, .cursor-ring) {
+  filter: drop-shadow(0 0 8px rgba(215, 183, 113, 0.58));
+}
+
+/* Earned CORE interface */
+.core-interface {
+  pointer-events: none;
+  font-size: 0.54rem;
+  letter-spacing: 0.22em;
+}
+
+.core-corner,
+.core-status {
+  position: fixed;
+  z-index: 45;
+  opacity: 0;
+  color: var(--ink-dim);
+  transition: opacity 0.45s;
+}
+
+html[data-skin='core'] :is(.core-corner, .core-status) {
+  opacity: 1;
+}
+
+.core-corner {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.core-corner::before {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-soft);
+}
+
+.core-corner b,
+.core-status b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.core-corner-b {
+  right: var(--pad-x);
+  top: 6rem;
+  writing-mode: vertical-rl;
+}
+
+.core-corner-b::before {
+  width: 1px;
+  height: 18px;
+}
+
+.core-status {
+  right: var(--pad-x);
+  bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(215, 183, 113, 0.22);
+  background: rgba(7, 6, 5, 0.68);
+  backdrop-filter: blur(8px);
+}
+
+.core-status i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: corePulse 1.8s ease-in-out infinite;
+}
+
+.core-progress {
+  position: fixed;
+  z-index: 46;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  opacity: 0;
+  background: rgba(215, 183, 113, 0.08);
+  transition: opacity 0.45s;
+}
+
+html[data-skin='core'] .core-progress {
+  opacity: 1;
+}
+
+.core-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #72552b, #f0d69a);
+  box-shadow: 0 0 14px rgba(215, 183, 113, 0.5);
+  transform: scaleX(0);
+  transform-origin: left;
+  will-change: transform;
+}
+
+html[data-skin='core'] .hud {
+  left: var(--pad-x);
+  color: rgba(170, 161, 149, 0.78);
+  letter-spacing: 0.24em;
+}
+
+html[data-skin='core'] .hud::before {
+  content: '◈ ';
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-soft);
+}
+
+.core-scan {
+  position: fixed;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: -12vh;
+  height: 12vh;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(215, 183, 113, 0.045), transparent);
+}
+
+html[data-skin='core'] .core-scan {
+  opacity: 1;
+  animation: coreScan 9s linear infinite;
+}
+
+.skin-wipe {
+  position: fixed;
+  z-index: 210;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(-110%);
+  background:
+    linear-gradient(90deg, transparent 0%, #090806 18%, #d7b771 49.8%, #090806 50.2%, transparent 100%);
+}
+
+.skin-wipe.is-playing {
+  animation: skinWipe 0.8s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+@keyframes skinWipe {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(110%); }
+}
+
+@keyframes coreScan {
+  from { transform: translateY(-12vh); }
+  to { transform: translateY(112vh); }
+}
+
+@keyframes corePulse {
+  50% { opacity: 0.4; transform: scale(0.72); }
+}
+
+@media (max-width: 700px) {
+  .core-corner,
+  .core-status,
+  .core-scan {
+    display: none;
+  }
+}
+
 /* ── Section index rail (right edge, desktop) ── */
 .rail {
   position: fixed;
@@ -378,113 +578,6 @@ html.fine-pointer .cursor-ring {
   .hud {
     display: block;
   }
-}
-
-/* ── BUG HUNT mini-game ── */
-#game-open {
-  position: fixed;
-  right: 1.4rem;
-  bottom: 1.3rem;
-  z-index: 45;
-  padding: 0.65rem 1.05rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(16, 16, 20, 0.6);
-  backdrop-filter: blur(8px);
-  font-size: 0.58rem;
-  letter-spacing: 0.2em;
-  color: var(--ink-dim);
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s, color 0.3s, border-color 0.3s;
-}
-body.is-loaded #game-open {
-  opacity: 1;
-  pointer-events: auto;
-}
-#game-open:hover {
-  color: var(--accent);
-  border-color: var(--accent-soft);
-}
-body.game-on #game-open {
-  display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  #game-open {
-    display: none !important;
-  }
-}
-
-#game-ui {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-}
-.game-hud {
-  position: absolute;
-  top: 1.2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 0.7rem 1.3rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(10, 10, 11, 0.75);
-  backdrop-filter: blur(10px);
-  font-size: 0.6rem;
-  letter-spacing: 0.18em;
-  color: var(--ink-dim);
-  white-space: nowrap;
-}
-.game-hud b {
-  color: var(--accent);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  display: inline-block;
-}
-#game-quit {
-  pointer-events: auto;
-  color: var(--ink);
-  font-size: 0.7rem;
-  padding: 0.15rem 0.4rem;
-  cursor: pointer;
-}
-#game-quit:hover {
-  color: var(--accent);
-}
-.game-msg {
-  position: absolute;
-  top: 58%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 0.7rem;
-  letter-spacing: 0.34em;
-  color: var(--ink);
-  text-align: center;
-  text-shadow: 0 0 24px rgba(0, 0, 0, 0.9);
-}
-.game-pop {
-  position: fixed;
-  z-index: 70;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  pointer-events: none;
-  text-shadow: 0 0 12px var(--accent-soft);
-}
-/* the page steps back while the arena is live
-   (transition only on elements whose opacity GSAP never inlines) */
-main,
-.hud {
-  transition: opacity 0.45s;
-}
-body.game-on :is(main, .nav, .rail, .hud) {
-  opacity: 0.06;
-  pointer-events: none;
 }
 
 /* ── Chips / tags ── */

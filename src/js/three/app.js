@@ -42,10 +42,6 @@ const CAM = [
   { x: 0,     y: 0,    z: 6.9, ly: 0,     rz: 0,      alpha: 1.0  }, // 6 contact — push in on the core
 ];
 
-/* Bug Hunt overrides: arena = the hero lattice, centered and dimmed */
-const GAME_MORPH = { a: 0, b: 0, t: 0 };
-const GAME_CAM = { x: 0, y: 0, z: 8.5, ly: 0, rz: 0, alpha: 0.38 };
-
 let renderer, scene, camera, points, lines;
 let posAttr, linePosAttr;
 let F, COUNT, cur, seekK;
@@ -225,7 +221,6 @@ export function initThree() {
   scene.add(lines);
 
   initPackets();
-  initBugs();
 
   /* ── events ── */
   curPR = basePR();
@@ -266,9 +261,12 @@ export function assemble() {
 /** Re-read --accent from CSS (used when the CORE skin toggles). */
 export function syncAccentFromCss() {
   if (!uniforms?.uAccent) return;
+  const core = document.documentElement.dataset.skin === 'core';
   const hex =
     getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#b8ff3c';
   uniforms.uAccent.value.set(hex);
+  uniforms.uColor.value.set(core ? '#a99e8c' : '#99a6bd');
+  if (lines?.material) lines.material.color.set(core ? '#8b7046' : '#8a93a6');
 }
 
 /** Sustained flare (email hover): target 0..1 */
@@ -309,8 +307,6 @@ function worldFromScreen(nx, ny, out) {
   out.copy(camera.position).addScaledVector(dir, -camera.position.z / dir.z);
   return true;
 }
-
-export const threeReady = () => ready;
 
 /* ════════════════════════════════════════════════════════════
    SIGNAL PACKETS — a handful of bright accent motes that hop
@@ -415,143 +411,7 @@ function updatePackets(dt) {
   }
   pkPosAttr.needsUpdate = true;
   pkUniforms.uPR.value = curPR;
-  pkUniforms.uAlphaP.value = uniforms.uAlpha.value * (gameMode ? 0.35 : 0.95);
-}
-
-/* ════════════════════════════════════════════════════════════
-   BUG HUNT — glitchy red intruders in the system. game.js owns
-   the rules/UI; this layer owns spawning, motion and hit tests.
-   ════════════════════════════════════════════════════════════ */
-const MAX_BUGS = 6;
-let gameMode = false;
-let gameT0 = -1;
-let gameElapsed = 0;
-let bugs = [];
-let bugPosAttr, bugUniforms, bugPoints;
-
-function initBugs() {
-  bugs = Array.from({ length: MAX_BUGS }, () => ({ p: new THREE.Vector3(), v: new THREE.Vector3() }));
-  const geo = new THREE.BufferGeometry();
-  bugPosAttr = new THREE.BufferAttribute(new Float32Array(MAX_BUGS * 3), 3);
-  bugPosAttr.setUsage(THREE.DynamicDrawUsage);
-  geo.setAttribute('position', bugPosAttr);
-  const seeds = new Float32Array(MAX_BUGS).map(() => Math.random());
-  geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
-  bugUniforms = {
-    uTime: { value: 0 },
-    uPR: { value: curPR },
-    uColor: { value: new THREE.Color('#ff5148') },
-  };
-  bugPoints = new THREE.Points(
-    geo,
-    new THREE.ShaderMaterial({
-      uniforms: bugUniforms,
-      transparent: true,
-      depthWrite: false,
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
-      vertexShader: /* glsl */ `
-        attribute float aSeed;
-        uniform float uTime, uPR;
-        varying float vSeed;
-        void main() {
-          vSeed = aSeed;
-          vec3 p = position;
-          // nervous glitch jitter — bugs never sit still
-          p.x += sin(uTime * (12.0 + aSeed * 9.0) + aSeed * 40.0) * 0.05;
-          p.y += cos(uTime * (15.0 + aSeed * 7.0) + aSeed * 70.0) * 0.05;
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          float dist = max(0.1, -mv.z);
-          gl_PointSize = uPR * (64.0 / dist) * (1.25 + 0.25 * sin(uTime * 21.0 + aSeed * 30.0));
-          gl_Position = projectionMatrix * mv;
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform float uTime;
-        uniform vec3 uColor;
-        varying float vSeed;
-        void main() {
-          vec2 c = gl_PointCoord - 0.5;
-          float box = step(max(abs(c.x), abs(c.y)), 0.44);
-          float core = step(max(abs(c.x), abs(c.y)), 0.16);
-          float fl = 0.55 + 0.45 * step(0.5, fract(sin(uTime * 24.0 + vSeed * 99.0) * 437.5));
-          float a = box * fl;
-          if (a < 0.05) discard;
-          gl_FragColor = vec4(mix(uColor, vec3(1.0), core * 0.6), a);
-        }
-      `,
-    })
-  );
-  bugPoints.frustumCulled = false;
-  bugPoints.visible = false;
-  scene.add(bugPoints);
-}
-
-function respawnBug(b) {
-  const hw = camera.aspect * 2.9;
-  b.p.set(rnd(-hw, hw) * 0.85, rnd(-2.2, 2.2) * 0.85, rnd(-0.4, 0.6));
-  b.v.set(rnd(-1, 1), rnd(-1, 1), 0).normalize().multiplyScalar(0.5);
-}
-
-const activeBugCount = () => Math.min(3 + Math.floor(gameElapsed / 7), MAX_BUGS);
-
-function updateBugs(dt, time) {
-  if (gameT0 < 0) gameT0 = time;
-  gameElapsed = time - gameT0;
-  const n = activeBugCount();
-  const hw = camera.aspect * 2.9, hh = 2.25;
-  const speed = 0.55 + gameElapsed * 0.03; // difficulty ramp
-  const arr = bugPosAttr.array;
-  for (let i = 0; i < MAX_BUGS; i++) {
-    const b = bugs[i];
-    if (i >= n) {
-      arr[i * 3 + 1] = 999; // parked offscreen
-      continue;
-    }
-    b.v.x += rnd(-1, 1) * 2.4 * dt;
-    b.v.y += rnd(-1, 1) * 2.4 * dt;
-    b.v.clampLength(0.2, speed);
-    b.p.addScaledVector(b.v, dt);
-    if (Math.abs(b.p.x) > hw) { b.v.x *= -1; b.p.x = Math.sign(b.p.x) * hw; }
-    if (Math.abs(b.p.y) > hh) { b.v.y *= -1; b.p.y = Math.sign(b.p.y) * hh; }
-    arr[i * 3] = b.p.x;
-    arr[i * 3 + 1] = b.p.y;
-    arr[i * 3 + 2] = b.p.z;
-  }
-  bugPosAttr.needsUpdate = true;
-  bugUniforms.uTime.value = time;
-  bugUniforms.uPR.value = curPR;
-}
-
-/** Enter/exit Bug Hunt. Returns false if WebGL never initialised. */
-export function gameSetMode(on) {
-  if (!ready || ENV.reduced) return false;
-  gameMode = on;
-  gameT0 = -1;
-  gameElapsed = 0;
-  bugPoints.visible = on;
-  if (on) bugs.forEach(respawnBug);
-  return true;
-}
-
-/** Hit test a click against live bugs. Returns true on squash. */
-export function gameClick(clientX, clientY) {
-  if (!ready || !gameMode) return false;
-  const radius = ENV.touch ? 80 : 58; // px forgiveness
-  const v = new THREE.Vector3();
-  const n = activeBugCount();
-  for (let i = 0; i < n; i++) {
-    v.copy(bugs[i].p).project(camera);
-    const sx = (v.x * 0.5 + 0.5) * innerWidth;
-    const sy = (-v.y * 0.5 + 0.5) * innerHeight;
-    if (Math.hypot(clientX - sx, clientY - sy) < radius) {
-      respawnBug(bugs[i]); // squashed → respawn elsewhere
-      gsap.to(uniforms.uFlare, { value: 0.55, duration: 0.1, ease: 'power2.in', overwrite: 'auto' });
-      gsap.to(uniforms.uFlare, { value: 0, duration: 0.7, delay: 0.1, ease: 'power3.out', overwrite: false });
-      return true;
-    }
-  }
-  return false;
+  pkUniforms.uAlphaP.value = uniforms.uAlpha.value * 0.95;
 }
 
 /** Skills hover: -1 = none, 0..3 = ring index */
@@ -598,8 +458,7 @@ function updateLines(opacity) {
 /* ── render loop ── */
 function frame(time, deltaMS) {
   const dt = Math.min(deltaMS / 1000, 0.05);
-  // Bug Hunt hijacks the morph: arena = assembled lattice, centered
-  const { a, b, t } = gameMode ? GAME_MORPH : morph;
+  const { a, b, t } = morph;
   /** blend weight of formation i in the EFFECTIVE state */
   const wOf = (i) => (a === i ? 1 - t : 0) + (b === i ? t : 0);
 
@@ -659,8 +518,8 @@ function frame(time, deltaMS) {
   posAttr.needsUpdate = true;
 
   /* camera: blend keyframes, add mouse parallax, damp everything */
-  const ca = gameMode ? GAME_CAM : CAM[a];
-  const cb = gameMode ? GAME_CAM : CAM[b];
+  const ca = CAM[a];
+  const cb = CAM[b];
   const xMul = narrow ? 0 : 1;
   const zMul = narrow ? 1.34 : 1;
   const baseX = lerp(ca.x, cb.x, t) * xMul;
@@ -685,21 +544,19 @@ function frame(time, deltaMS) {
   /* uniforms — group mode follows whichever themed formation dominates */
   uniforms.uTime.value = time;
   uniforms.uAlpha.value = lerp(ca.alpha, cb.alpha, t) * (0.15 + 0.85 * im);
-  uniforms.uGroupMode.value =
-    gameMode ? 0 : wOf(2) > 0.5 ? 1 : wOf(4) > 0.5 ? 3 : wOf(5) > 0.5 ? 2 : 0;
+  uniforms.uGroupMode.value = wOf(2) > 0.5 ? 1 : wOf(4) > 0.5 ? 3 : wOf(5) > 0.5 ? 2 : 0;
   uniforms.uHighlight.value = highlightRing;
 
-  /* lattice beams: strong at hero, faint echo at contact, full in the arena */
-  updateLines(gameMode ? 0.3 : (wOf(0) * 0.42 + wOf(6) * 0.13) * im);
+  /* lattice beams: strong at hero, with a faint echo at contact */
+  updateLines((wOf(0) * 0.42 + wOf(6) * 0.13) * im);
 
   /* living layers */
   updatePackets(dt);
-  if (gameMode) updateBugs(dt, time);
 
   /* HUD stats + adaptive quality governor */
   frameEMA = frameEMA * 0.95 + deltaMS * 0.05;
   stats.fps = Math.round(1000 / Math.max(frameEMA, 1));
-  stats.formation = gameMode ? 'ARENA' : FORM_NAMES[t < 0.5 ? a : b];
+  stats.formation = FORM_NAMES[t < 0.5 ? a : b];
   if (++frameCount % 180 === 0 && frameEMA > 26 && curPR > 1) {
     curPR = Math.max(1, curPR - 0.25); // trade sharpness for smoothness
     renderer.setPixelRatio(curPR);

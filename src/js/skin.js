@@ -7,11 +7,6 @@ export const UNLOCK_KEY = 'mma-core-unlocked';
 export const SKIN_KEY = 'mma-skin'; // 'default' | 'core'
 export const SCORES_KEY = 'gridrun-scores';
 
-const CORE = {
-  accent: '#ff3ec8',
-  soft: 'rgba(255, 62, 200, 0.35)',
-};
-
 /** True once the player has cleared CORE (or already has a 40k+ score saved). */
 export function isSkinUnlocked() {
   try {
@@ -53,6 +48,7 @@ export function setSkin(id) {
     /* ignore */
   }
   applySkin(next);
+  playSkinTransition(next);
   return next;
 }
 
@@ -60,12 +56,8 @@ export function applySkin(id = getSkin()) {
   const root = document.documentElement;
   if (id === 'core') {
     root.setAttribute('data-skin', 'core');
-    root.style.setProperty('--accent', CORE.accent);
-    root.style.setProperty('--accent-soft', CORE.soft);
   } else {
     root.removeAttribute('data-skin');
-    root.style.removeProperty('--accent');
-    root.style.removeProperty('--accent-soft');
   }
   window.dispatchEvent(new CustomEvent('mma:skin', { detail: { skin: id } }));
 }
@@ -77,6 +69,7 @@ export function initSkinToggle() {
 
   const nav = document.querySelector('.nav-links');
   if (!nav || document.getElementById('skin-toggle')) return;
+  mountCoreInterface();
 
   const btn = document.createElement('button');
   btn.id = 'skin-toggle';
@@ -102,4 +95,78 @@ function syncLabel(btn) {
   const on = getSkin() === 'core';
   btn.textContent = on ? 'CORE ●' : 'CORE ○';
   btn.classList.toggle('is-on', on);
+}
+
+/** Extra interface chrome makes the earned skin feel like a new operating mode. */
+function mountCoreInterface() {
+  if (document.getElementById('core-interface')) return;
+
+  const shell = document.createElement('div');
+  shell.id = 'core-interface';
+  shell.className = 'core-interface mono';
+  shell.setAttribute('aria-hidden', 'true');
+  shell.innerHTML = `
+    <div class="core-corner core-corner-b"><span>OBSIDIAN</span><b>40K CLEAR</b></div>
+    <div class="core-status"><i></i><span>SYSTEM ONLINE</span><b id="core-section">HERO / 00</b></div>
+    <div class="core-progress"><span></span></div>
+    <div class="core-scan"></div>
+    <div class="skin-wipe"></div>
+  `;
+  document.body.appendChild(shell);
+  initCoreTelemetry(shell);
+}
+
+function playSkinTransition(next) {
+  const wipe = document.querySelector('.skin-wipe');
+  if (!wipe || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  wipe.dataset.to = next;
+  wipe.classList.remove('is-playing');
+  void wipe.offsetWidth;
+  wipe.classList.add('is-playing');
+  window.setTimeout(() => wipe.classList.remove('is-playing'), 850);
+}
+
+function initCoreTelemetry(shell) {
+  const progress = shell.querySelector('.core-progress span');
+  const sectionLabel = shell.querySelector('#core-section');
+  let frame = 0;
+
+  const updateViewport = (event) => {
+    if (event) {
+      document.documentElement.style.setProperty('--core-x', `${event.clientX}px`);
+      document.documentElement.style.setProperty('--core-y', `${event.clientY}px`);
+    }
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      const value = max > 0 ? Math.min(scrollY / max, 1) : 0;
+      progress.style.transform = `scaleX(${value})`;
+      frame = 0;
+    });
+  };
+
+  window.addEventListener('scroll', () => updateViewport(), { passive: true });
+  if (matchMedia('(pointer: fine)').matches) {
+    window.addEventListener('pointermove', updateViewport, { passive: true });
+  }
+  updateViewport();
+
+  const names = {
+    hero: 'HERO / 00',
+    about: 'PROFILE / 01',
+    skills: 'SYSTEMS / 02',
+    work: 'ARCHIVE / 03',
+    experience: 'HISTORY / 04',
+    cloud: 'NETWORK / 05',
+    contact: 'UPLINK / 06',
+  };
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const active = entries.find((entry) => entry.isIntersecting);
+      if (active) sectionLabel.textContent = names[active.target.id] || active.target.id.toUpperCase();
+    },
+    { rootMargin: '-42% 0px -42% 0px' }
+  );
+  document.querySelectorAll('[data-formation]').forEach((section) => observer.observe(section));
 }

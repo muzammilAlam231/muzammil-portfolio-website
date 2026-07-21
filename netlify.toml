@@ -1,0 +1,40 @@
+# Netlify — frontend hosting (Firestore / Auth stay on Firebase)
+# Connect this repo in Netlify → Site settings use these automatically.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Same clean URLs as firebase.json rewrites
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/play"
+  to = "/play.html"
+  status = 200
+
+[[redirects]]
+  from = "/play/"
+  to = "/play.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"

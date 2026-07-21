@@ -77,20 +77,6 @@
   <!-- Live system readout (desktop): current formation + fps -->
   <div class="hud mono" id="hud" aria-hidden="true"></div>
 
-  <!-- ══════════════════ BUG HUNT (mini-game) ══════════════════
-       Glitch-bugs invade the particle system; squash them before
-       the timer runs out. Press G or use the pill button. -->
-  <button id="game-open" class="mono" aria-label="Play Bug Hunt — squash the bugs in the system">◉ BUG HUNT</button>
-  <div id="game-ui" hidden>
-    <div class="game-hud mono">
-      <span>SCORE <b id="game-score">0</b></span>
-      <span><b id="game-time">30.0</b>S</span>
-      <span>BEST <b id="game-best">0</b></span>
-      <button id="game-quit" class="mono" aria-label="Quit game">✕</button>
-    </div>
-    <p class="game-msg mono" id="game-msg"></p>
-  </div>
-
   <!-- ══════════════════ NAV ══════════════════ -->
   <header class="nav" id="site-nav">
     <a class="nav-logo" href="#hero" data-magnetic aria-label="Back to top">

@@ -30,8 +30,14 @@
 
 /* CORE skin — unlocked by clearing GRID RUN (toggle on homepage) */
 :root[data-skin='core'] {
-  --accent: #ff3ec8;
-  --accent-soft: rgba(255, 62, 200, 0.35);
+  --bg: #050505;
+  --bg-2: #0d0c0a;
+  --ink: #f3efe7;
+  --ink-dim: #aaa195;
+  --line: rgba(215, 183, 113, 0.17);
+  --accent: #d7b771;
+  --accent-ink: #0b0905;
+  --accent-soft: rgba(215, 183, 113, 0.36);
 }
 
 *,
@@ -58,6 +64,44 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100svh;
+}
+
+/* Obsidian Luxe: warmer black, champagne light, and a restrained halo. */
+html[data-skin='core'] body {
+  background:
+    radial-gradient(ellipse at 78% 3%, rgba(202, 164, 84, 0.1), transparent 34%),
+    radial-gradient(ellipse at 14% 78%, rgba(132, 96, 38, 0.07), transparent 38%),
+    linear-gradient(145deg, #020202 0%, var(--bg) 52%, #090805 100%);
+  background-attachment: fixed;
+}
+
+html[data-skin='core'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(115deg, transparent 0 48%, rgba(215, 183, 113, 0.11) 49%, transparent 50%),
+    repeating-linear-gradient(90deg, transparent 0 119px, rgba(215, 183, 113, 0.045) 120px);
+  background-size: 100% 100%, 120px 100%;
+  mask-image: radial-gradient(ellipse at 50% 30%, black, transparent 82%);
+}
+
+html[data-skin='core'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      380px circle at var(--core-x, 72vw) var(--core-y, 28vh),
+      rgba(215, 183, 113, 0.075),
+      transparent 68%
+    );
+  mix-blend-mode: screen;
 }
 
 /* Scroll is unlocked by JS once the preloader finishes */
@@ -159,6 +203,16 @@ html.no-webgl body {
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+html[data-skin='core'] .noise::before {
+  opacity: 0.04;
+}
+
+html[data-skin='core'] .noise::after {
+  background:
+    linear-gradient(to bottom, rgba(215, 183, 113, 0.018), transparent 20%),
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.78) 100%);
 }
 @keyframes grain {
   0%, 100% { transform: translate(0, 0); }

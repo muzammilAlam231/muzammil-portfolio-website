@@ -787,7 +787,6 @@ export function initSections() {
   if (!ENV.reduced) {
     document.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      if (document.body.classList.contains('game-on')) return; // game handles its own bursts
       if (e.target.closest('a, button, .skill-card, [data-magnetic], input, textarea, select, .p-mock')) return;
       burst(e.clientX, e.clientY);
     });

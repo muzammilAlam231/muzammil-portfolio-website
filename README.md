@@ -13,6 +13,31 @@ npm run build    # production build → dist/
 npm run preview  # serve the production build
 ```
 
+## Deploy
+
+### Netlify (custom domain + static hosting)
+
+This repo includes `netlify.toml`. Firestore, admin auth, and traffic analytics still use Firebase project **muzammil-26858**.
+
+1. Push this repo to GitHub (if not already).
+2. Netlify → **Add new site** → **Import from Git** → select the repo.
+3. Netlify reads build settings from `netlify.toml` (`npm run build` → `dist`). Deploy.
+4. **Domain:** Site settings → Domain management → add `muhammadmuzammilalam.dev` (and `www` if you use it).
+5. **Firebase Auth (required for `/admin`):** [Firebase Console](https://console.firebase.google.com/project/muzammil-26858/authentication/settings) → **Authorized domains** → add:
+   - `muhammadmuzammilalam.dev`
+   - `www.muhammadmuzammilalam.dev` (if used)
+   - your `*.netlify.app` preview URL (for testing before the domain is live)
+
+Clean URLs: `/play` and `/admin` rewrite to the HTML entries (same as Firebase hosting).
+
+### Firebase Hosting (alternative)
+
+```bash
+npm run deploy
+```
+
+Live at https://muzammil-26858.web.app — connect a custom domain under Firebase Console → Hosting if you prefer one platform for frontend + backend.
+
 ---
 
 ## The creative concept: "One System"
@@ -46,10 +71,6 @@ A Subway-Surfers-style lane runner through a neon **data highway**, linked from 
 **Model swap points** are marked with `⚠ MODEL SWAP POINT` comments (player rig in `player.js`, obstacle builders in `spawner.js`, decor in `world.js`) — replace primitives with GLTF, keep the collider data.
 
 **Theme alternatives** if the data-highway feels too on-the-nose: (1) *low-poly vaporwave sunset* — pastel gradient sky, wireframe terrain, palm silhouettes; (2) *brutalist void* — monochrome monoliths and a single red hazard color, maximum minimalism.
-
-### BUG HUNT — the built-in mini-game (easter egg)
-
-Press **G** (or the `◉ BUG HUNT` pill, bottom-right): glitchy red bugs invade the system and you get 30 seconds to squash them. The page dims, the lattice becomes the arena, difficulty ramps (more + faster bugs), every hit bursts the particle field, and your best score persists in `localStorage`. `Esc` quits. Rules/UI live in `src/js/game.js`; bug rendering + hit-testing in `src/js/three/app.js`. Disabled automatically for reduced-motion users.
 
 ### Positioning note
 
