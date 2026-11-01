@@ -15,42 +15,10 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase.js';
 import { projects as fallbackProjects } from './data.js';
+import { driveDirectUrl } from './drive-images.js';
+export { extractDriveId, driveEmbedVariants, driveDirectUrl } from './drive-images.js';
 
 const COL = 'works';
-
-/** Pull a Google Drive file id from common share / view URLs */
-export function extractDriveId(url) {
-  if (!url || typeof url !== 'string') return null;
-  const raw = url.trim();
-  const m =
-    raw.match(/\/file\/d\/([^/]+)/) ||
-    raw.match(/[?&]id=([^&]+)/) ||
-    raw.match(/\/d\/([^/=]+)/) ||
-    raw.match(/lh3\.googleusercontent\.com\/d\/([^=/?#]+)/);
-  return m?.[1] || null;
-}
-
-/**
- * Prefer embed-friendly Drive URLs.
- * `uc?export=view` often 403s inside <img>; thumbnail / lh3 work more reliably.
- */
-export function driveEmbedVariants(url) {
-  if (!url || typeof url !== 'string') return [];
-  const raw = url.trim();
-  if (!raw) return [];
-  const id = extractDriveId(raw);
-  if (!id) return [raw];
-  return [
-    `https://lh3.googleusercontent.com/d/${id}=w2400`,
-    `https://drive.google.com/thumbnail?id=${id}&sz=w2400`,
-    `https://drive.google.com/uc?export=view&id=${id}`,
-  ];
-}
-
-export function driveDirectUrl(url) {
-  const variants = driveEmbedVariants(url);
-  return variants[0] || null;
-}
 
 function normalizeImages(raw) {
   const list = [];
